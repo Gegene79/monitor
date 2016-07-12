@@ -1,0 +1,19 @@
+{
+  "name": "monitor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gegene79/monitor.git"
+  },
+  "author": "Fabien Vignat",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Gegene79/monitor/issues"
+  },
+  "homepage": "https://github.com/Gegene79/monitor#readme"
+}
