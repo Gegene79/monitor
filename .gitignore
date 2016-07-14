@@ -39,6 +39,8 @@ jspm_packages
 # ficheros de Visual Code
 .vscode
 typings/
+jsconfig.json
+launch.json
 
 # ficheros Mac OSX
 .DS_Store
