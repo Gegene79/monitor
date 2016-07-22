@@ -4,7 +4,7 @@ var db = require('../db/db');
 var ini = new Date();
 var end = new Date();
 
-router.use(function (req, res, next) {  
+router.use(function (req, res, next) { 
     var hour = 60*60*1000;
     ini = Date.now()-7*24*hour;
     end = Date.now();
@@ -21,7 +21,6 @@ router.use(function (req, res, next) {
 
 
 router.get('/', function(req, res, next) {
-    
     db.Metric.find({
         timestamp: {
         $gte: ini,
@@ -37,8 +36,7 @@ router.get('/', function(req, res, next) {
 });
 
 router.get('/:type', function(req, res, next) {
-  //res.render('index', { title: req.params.name });
-
+  
   if(req.params.type){
     db.Metric.find({
       type: req.params.type,
@@ -96,7 +94,6 @@ router.get('/:type/:name/current', function(req, res, next) {
 
 // insert metric
 router.post('/:type/:name', function(req,res,next){
-  console.log(req.body);
   req.body.name = req.params.name;
   req.body.type = req.params.type;
 
