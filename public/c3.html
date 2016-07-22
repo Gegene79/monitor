@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style> /* set the CSS */
+
+</style>
+<!-- Load c3.css -->
+<link rel="stylesheet" type="text/css"  href="stylesheets/c3.css">
+
+<!-- Load d3.js and c3.js -->
+<script src="https://d3js.org/d3.v3.js"></script>
+<script src="javascripts/c3.js"></script>
+<body>
+<div id="chart"></div>
+
+ <script>
+ var chart = c3.generate({
+    bindto: '#chart',
+    data: {
+            url: "/api/temperature/salon?ini=2016-07-17T12:48:02.670Z",
+            mimeType: 'json'
+            },  
+             keys: {
+                x: 'timestamp', // it's possible to specify 'x' when category axis
+                x_format: '%Y-%m-%dT%H:%M:%S.%LZ'
+                value: 'value'
+            },
+            axis: {
+                x: {
+                    type: 'timeseries',
+                    tick: {
+                        format: '%Y-%m-%dT%H:%M:%S.%LZ'
+                    }
+                }
+            }
+});
+
+/*
+setTimeout(function () {
+    c3.generate({
+        data: {
+            url: '/api/temperature/salon?ini=2016-07-17T12:48:02.670Z',
+            mimeType: 'json'
+        }
+    });
+}, 1000);
+*/
+</script>
+</body>
