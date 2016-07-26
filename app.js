@@ -6,6 +6,7 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var routes = require('./routes/index');
 var api = require('./routes/api');
+var nvd3 = require('./routes/nvd3');
 var lists = require('./routes/lists');
 var db = require('./db/db')
 var app = express();
@@ -23,6 +24,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api/metrics', lists);
+app.use('/api/nvd3', nvd3);
 app.use('/api', api);
 app.use('/monitor', express.static('public'));
 
