@@ -35,25 +35,33 @@ router.get('/', function(req, res, next) {
     });
 });
 
+/* TODO : terminar esa query
+router.get('/current', function(req, res, next) {
+    
+    db.Metric.aggregate(
+        [
+        { $sort: {type: 1, name: 1, timestamp:1} },
+        { $group: {_id: {"$name","$type"}, timestamp: {$last: "$timestamp" }}}
+        ], 
+        function (err, docs) {
+            res.json(docs);
+    });
+});
+*/
+
 router.get('/:type', function(req, res, next) {
-  
-  if(req.params.type){
-    db.Metric.find({
-      type: req.params.type,
-      timestamp: {
+  db.Metric.find({
+        type: req.params.type,
+        timestamp: {
         $gte: ini,
         $lte: end
         }
-   },'-_id name timestamp value')
-   .sort('name')
-   .sort('timestamp')
-   .exec(function (err, docs) {
-            res.json(docs);
-    });
-  } else {
-      res.render('index', { title: req.params.name });
-  }
-});
+    },'-_id name timestamp value')
+    .sort('name')
+    .sort('timestamp')
+    .exec(function (err, docs) {
+        res.json(docs);
+    });});
 
 router.get('/:type/:name', function(req, res, next) {
 
