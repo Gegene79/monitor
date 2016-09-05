@@ -1,7 +1,7 @@
 /**
- * reuseConnection.ino
+ * monitor.ino
  *
- *  Created on: 22.11.2015
+ *  Created on: 03.07.2016 by Fabien
  *
  */
 
@@ -22,10 +22,10 @@ HTTPClient http;
 const char* SSID = "bichito";     //  your network SSID (name) 
 const char* PASS = "vivifafa";  // your network password
 const char* NAME = "Pierre";
-const char* BASE_URL = "http://192.168.1.10/node/api/";
+const char* BASE_URL = "http://192.168.1.2/node/api/";
 const char* PAR_TEMP = "temperature/";
 const char* PAR_HUM = "humidity/";
-const long  DELAY = 60*1000;
+const long  DELAY = 60*1000; //60 seconds
 
 void setup_wifi() {
   
