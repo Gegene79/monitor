@@ -19,13 +19,30 @@ var MetricModel = mongoose.model('Metric', Metric);
 
 exports.Metric = MetricModel;
 
-exports.connect = function(){
-    mongoose.connect(URL);
-    db.on('error', console.error.bind(console, 'connection error:'));
-    db.once('open', function() {
+db.on('error', function(err) {
+        console.log("DB connection Error: "+err);
+        connect();
+});
+    
+db.on('close', function(str) {
+        console.log("DB disconnected: "+str);
+});
+
+db.once('open', function() {
     // we're connected!
-    console.log("connectado!")
-    });
+    console.log("connectado!");
+});
+
+
+exports.connect = function(err){
+
+    return mongoose.connect(URL, function(err) {
+    
+    if (err) {
+      console.error('Failed to connect to mongo on startup - retrying in 5 sec', err);
+      setTimeout(exports.connect, 5000);
+    }
+  });  
 };
 
 exports.insertMetric = function(metric, callback) {
