@@ -59,6 +59,7 @@ router.get('/', function(req, res, next) {
         }
     ],
     function (err, docs) {
+        
         res.json(docs);
     });
 });
@@ -109,7 +110,24 @@ router.get('/:type', function(req, res, next) {
         }
     ],
     function (err, docs) {
-        res.json(docs);
+
+    var result = [];
+        docs.forEach(function(entry){
+
+            var datapoint = { x: entry._id.timestamp, y: entry.avg };
+            var exist_metric = result.find(function(a) {
+                    return (a.key == entry._id.name);
+                });
+
+            if (exist_metric){ // la metrica con nombre _id.name ya esta en result, solo hay que añadir el datapoint
+                exist_metric.values.push(datapoint);
+            } else { // la metrica no esta en result, hay que añadirla con su primer datapoint
+                var metric = {key : entry._id.name, values: [datapoint] };
+                result.push(metric);
+            }
+        });
+
+        res.json(result);
     });  
 
 });
