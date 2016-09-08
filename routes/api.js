@@ -3,17 +3,24 @@ var router = express.Router();
 var db = require('../db/db');
 var ini = new Date();
 var end = new Date();
+var min =  60*1000;
+var hour = 60*min;
+var sampling; 
 
-router.use(function (req, res, next) { 
-    var hour = 60*60*1000;
-    ini = Date.now()-7*24*hour;
-    end = Date.now();
+router.use(function (req, res, next) {
+
+    ini = Date.now()-7*24*hour;     // default: since one week
+    end = Date.now();               // default: up to now
+    sampling = 5*min;               // default: values are averaged on 5 mins intervals
 
     if (req.query.ini){
         ini = new Date(req.query.ini);
     } 
     if (req.query.end){
         end = new Date(req.query.end);
+    }
+    if (req.query.sampling){
+        sampling = req.query.sampling*min;
     }
 
     next();
@@ -34,9 +41,7 @@ router.get('/', function(req, res, next) {
                             { "$subtract": [
                                 { "$subtract": [ "$timestamp", new Date(0) ] },
                                 { "$mod": [ 
-                                    { "$subtract": [ "$timestamp", new Date(0) ] },
-                                        1000 * 60 * 5
-                                    ]}
+                                    { "$subtract": [ "$timestamp", new Date(0) ] }, sampling]}
                                 ]},
                             new Date(0)
                             ]
@@ -86,9 +91,7 @@ router.get('/:type', function(req, res, next) {
                             { "$subtract": [
                                 { "$subtract": [ "$timestamp", new Date(0) ] },
                                 { "$mod": [ 
-                                    { "$subtract": [ "$timestamp", new Date(0) ] },
-                                        1000 * 60 * 5
-                                    ]}
+                                    { "$subtract": [ "$timestamp", new Date(0) ] }, sampling ]}
                                 ]},
                             new Date(0)
                             ]
@@ -143,9 +146,7 @@ router.get('/:type/:name', function(req, res, next) {
                             { "$subtract": [
                                 { "$subtract": [ "$timestamp", new Date(0) ] },
                                 { "$mod": [ 
-                                    { "$subtract": [ "$timestamp", new Date(0) ] },
-                                        1000 * 60 * 5
-                                    ]}
+                                    { "$subtract": [ "$timestamp", new Date(0) ] }, sampling ]}
                                 ]},
                             new Date(0)
                             ]
