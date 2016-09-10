@@ -107,6 +107,9 @@ router.get('/:type', function(req, res, next) {
                 //"max": { "$max": "$value"},
                 //"stdev": { "$stdDevPop": "$value"}
             }
+        },
+        {
+        "$sort": { '_id.type': 1, '_id.name': 1, '_id.timestamp': 1 } 
         }
     ],
     function (err, docs) {
