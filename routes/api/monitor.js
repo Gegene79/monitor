@@ -1,6 +1,7 @@
+"use strict";
 var express = require('express');
 var router = express.Router();
-var db = require('../db/db');
+var db = require('../../common/db');
 var ini = new Date();
 var end = new Date();
 var min =  60*1000;
@@ -24,6 +25,52 @@ router.use(function (req, res, next) {
     }
 
     next();
+});
+
+/* GET metrics listing. */
+router.get('/', function(req, res, next) {
+  db.Metric.aggregate([   
+        { $group: {
+            _id: {'type':'$type', 'name': '$name'},
+            count: { $sum: 1 }
+        }}
+    ], function (err, result) {
+        if (err) {
+            console.log(err);
+            return;
+        }
+        res.json(result);
+    });
+});
+
+router.get('/types', function(req, res, next) {
+  db.Metric.aggregate([   
+        { $group: {
+            _id: '$type',
+            count: { $sum: 1 }
+        }}
+    ], function (err, result) {
+        if (err) {
+            console.log(err);
+            return;
+        }
+        res.json(result);
+    });
+});
+
+router.get('/names', function(req, res, next) {
+  db.Metric.aggregate([   
+        { $group: {
+            _id: '$name',
+            count: { $sum: 1 }
+        }}
+    ], function (err, result) {
+        if (err) {
+            console.log(err);
+            return;
+        }
+        res.json(result);
+    });
 });
 
 
@@ -207,8 +254,13 @@ router.post('/:type/:name', function(req,res,next){
   req.body.name = req.params.name;
   req.body.type = req.params.type;
 
-  db.insertMetric(req.body,function(){
-      res.render('index', { title: req.params.name });
+  db.insertMetric(req.body)
+  .then(function(result){
+      res.status(200).json(result);
+  })
+  .catch(function(error){
+      console.log(error);
+      res.status(500).json(error);
   });
 });
 

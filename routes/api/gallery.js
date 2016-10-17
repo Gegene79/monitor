@@ -1,10 +1,11 @@
+"use strict";
+var db = require('../../common/db');
 var express = require('express');
 var router = express.Router();
-var db = require('../common/db');
 
-/* GET home page. */
+/* GET  */
 router.get('/', function(req, res, next) {
-  res.sendFile('dashboard.html');
 });
+
 
 module.exports = router;
