@@ -46,7 +46,7 @@ exports.connect = function(callback){
 
 exports.listAllImages = function(){
     // empty filter {}, returns path, ctime and mtime
-     return images.find({},{'path':1,'ctime':1, 'mtime':1});
+     return images.find({},{'path':1,'ctime':1, 'mtime':1}).toArray();
 };
 
 
@@ -60,7 +60,15 @@ exports.deleteImage = function(id){
 };
 
 exports.deleteImages = function(filter){
-    return images.deleteMany(filter);
+    return images.deleteMany(filter)
+    .then(function(res){
+        console.log(new Date().toISOString()+ " - removed "+res.deletedCount+" images from db.");
+        return Promise.resolve(res);
+    })
+    .catch(function(error){
+        console.log(new Date().toISOString()+ " - error in removing images from db : "+error);
+        return Promise.reject(error);
+    });
 };
 
 exports.insertMetric = function(metric) {

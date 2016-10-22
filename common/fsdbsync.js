@@ -1,16 +1,14 @@
 "use strict";
 var Promise = require("bluebird");
-var glob = require("glob");
-var path = require("path");
-var fs = require("fs");
-var gm = require('gm');
+var glob = Promise.promisifyAll(require("glob"));
+var path = Promise.promisifyAll(require("path"));
+var fs = Promise.promisifyAll(require("fs"));
+var gm = Promise.promisifyAll(require("gm"));
 var imageMagick = gm.subClass({ imageMagick: true });
 var db = require("./db");
 var ExifImage = require('exif').ExifImage;
 const IMAGES_DIR = process.env.IMAGES_DIR;
 const THUMBS_DIR = process.env.THUMBS_DIR;
-var dbimages = [];
-var fsimages = [];
 
 
 function createthumb(image)  {
@@ -26,8 +24,7 @@ function createthumb(image)  {
                 console.log(err);
                 return reject(err);
             } else {
-                console.log(new Date().toISOString()+ ' - '+image+' size=' + size.width+'x'+size.height);
-
+                //console.log(new Date().toISOString()+ ' - '+image+' size=' + size.width+'x'+size.height);
 
                 if (size.height > 1080)  {
                     
@@ -52,53 +49,24 @@ function createthumb(image)  {
             }
         });
     });
-} 
-
-
-function getimagesonfs(pattern) {
-    return new Promise(function(resolve, reject) {
-        glob(pattern, {nocase:true}, function (glob_err, files) {
-            if (glob_err) {
-                reject(glob_err);
-            }
-            else {
-                fsimages = files;
-                resolve(files);
-            }
-        });
-    });
-}
-
-function deleteimage(path){
-    return new Promise(function(resolve,reject){
-
-        fs.unlink(path, function(error){
-            if (error){
-                console.log("Could not delete "+path+" error:"+error);
-                reject(error);
-            } else {
-                resolve();
-            };
-        });
-    });
-}
-
-function getimagesindb() {
-    return new Promise(function(resolve, reject) {
-        db.Images.find(
-            {},
-            { path: 1,ctime:1, mtime: 1}
-            ).toArray(function(err, docs){
-                if (err) {
-                    reject(err);
-                }
-                else {
-                    dbimages = docs;
-                    resolve(docs);
-                }
-        });
-    });
 };
+
+function deletefile(thumb){
+
+    if (thumb.startsWith(THUMBS_DIR)){
+        return fs.unlinkAsync(thumb)
+        .then(function(result){
+            console.log(new Date().toISOString()+" - deleted "+thumb);
+            return Promise.resolve(result);
+        })
+        .catch(function(error){
+            return Promise.reject(new Error(new Date().toISOString()+" - error intentando borrar fichero "+thumb));
+        });
+    } else {
+        return Promise.reject(new Error(new Date().toISOString()+" - solo se admite borrar en thumbs. aqui: "+thumb));
+    }
+}
+
 
 function getexif(path){
 
@@ -116,20 +84,6 @@ function getexif(path){
             console.log(new Date().toISOString()+ ' - getexif error: ' + error.message);
             reject(error);
         }
-    });
-};
-
-function getstats(path){
-
-    return new Promise(function(resolve, reject) {
-        fs.stat(path, function(error, stats){
-            if (error){
-                console.log(new Date().toISOString()+ ' - getstats error: ' + error.message);
-                reject(error);
-            } else {
-                resolve(stats);
-            }
-        });
     });
 };
 
@@ -155,6 +109,7 @@ function enrichimage(imgdetails){
             mtime : stats.mtime,
             ctime : stats.ctime,
             birthtime : stats.birthtime,
+            created_at : exifdata.exif.CreateDate,
             info : exifdata.image,
             gps : exifdata.gps,
             exif : exifdata.exif
@@ -164,87 +119,112 @@ function enrichimage(imgdetails){
 }
 
 function insertimage(path){
-    Promise.all([Promise.resolve(path),getstats(path),getexif(path)])
-    .then(enrichimage)
-    .then(function(image){
-        return Promise.all([Promise.resolve(image), createthumb(image.path)])
-    })
+    return Promise.all([Promise.resolve(path),fs.statAsync(path),getexif(path)])
     .then(function(results){
-        let image = results[0];
-        image.thumb = results[1];
+        return enrichimage(results);
+    })
+    .then(function(image){
         return db.insertImage(image);
     })
     .then(function(result){
         console.log(new Date().toISOString()+ " - inserted "+result.ops[0].filename);
+        return Promise.resolve(result);
     })
-    .catch(function (error){console.log('error en tratar imagen: '+error);});
+    .catch(function (error){
+        console.log('error en tratar imagen: '+error);
+        return Promise.reject(error);
+    });
 }
 
 function scan() {
-
+    var started_at = new Date();
     var imagespattern = IMAGES_DIR+"/**/*.jpg";
     var thumbspattern = THUMBS_DIR+"/**/*.jpg";
 
-    Promise.all([getimagesonfs(imagespattern), getimagesindb(), getimagesonfs(thumbspattern)])
+    console.log(new Date().toISOString()+ " - *** Starting scan. ***");
+
+    Promise.all([glob.globAsync(imagespattern,{nocase:true}),
+                 db.listAllImages(), 
+                 glob.globAsync(thumbspattern,{nocase:true})])
     .then(function(results) {
+        let fsimages = results[0];
+        let dbimages = results[1];
+        let fsthumbs = results[2];
 
         // check images found on fs versus in DB
-        results[0].forEach(function(item){
+        let imagestoinsert = [];
+        let thumbstocreate = []; 
+        fsimages.forEach(function(item){
             
-            let im = results[1].findIndex(function(element,index,array){return element.path==item});
+            let im = dbimages.findIndex(function(element,index,array){return element.path==item});
 
             if (im < 0){
                 console.log(new Date().toISOString()+ " - file "+ path.basename(item) +" not found in db");
-                insertimage(item);
+                //insertimage(item);
+                imagestoinsert.push(item);
             }
 
-            let thb = results[2].findIndex(function(element,index,array){return element==item});
+            let thb = fsthumbs.findIndex(function(element,index,array){
+                return ((IMAGES_DIR+element.substring(THUMBS_DIR.length)) == item);
+            });
 
             if (thb < 0){
                 console.log(new Date().toISOString()+ " - file "+ path.basename(item) +" not found in thumbs");
-                createthumb(item);
+                //createthumb(item);
+                thumbstocreate.push(item);
             }
-
         });
         
         // check images found in DB versus on fs and delete the obsolete ones
-        var imagestodelete = [];
-        var thumbstodelete = [];
-        results[1].forEach(function (item){
+        let imagestodelete = [];
+        dbimages.forEach(function (item){
             
-            let im = results[0].findIndex(function(element,index,array){return element==item.path});
+            let im = fsimages.findIndex(function(element,index,array){return element==item.path});
 
-            if (im < 0){ // esta en BBDD pero no en el fs
+            if (im < 0){ // esta en BBDD pero no en el fs, remove from db
                 imagestodelete.push(item._id);
             }
-
-            let thb = results[2].findIndex(function(element,index,array){
-                return ((IMAGES_DIR+element.substring(THUMBS_DIR.length)) == item.path);
-            });
-
-            if (thb < 0){ // esta en el fs pero no en bbdd
-                thumbstodelete.push(THUMBS_DIR+item.path.substring(IMAGES_DIR.length));
-            }
-
         });
         
-        let nbimgtodel = imagestodelete.length;
-        if (nbimgtodel > 0) {
-            db.deleteImages({_id:{$in: imagestodelete}})
-            .then(function(res){
-                if (res.deletedCount == nbimgtodel){
-                    console.log(new Date().toISOString()+ " - removed "+res.deletedCount+" images from db.");
-                } else {
-                    console.log(new Date().toISOString()+ " - error, removed " +res.deletedCount+" images on "+nbimgtodel);
-                }
-            })
-            .catch(function(error){
-                console.log(new Date().toISOString()+ " - error in removing images from db : "+error);
-            });
-        };
+        let thumbstodelete = [];
+        fsthumbs.forEach(function(item){
 
-        thumbstodelete.map(function(element){
-            deleteimage(element);
+            let thb = fsimages.findIndex(function(element,index,array){
+                return ((THUMBS_DIR+element.substring(IMAGES_DIR.length)) == item);
+            });
+
+            if (thb < 0){ // esta en los thumbnails pero no en las imagenes
+                thumbstodelete.push(item);
+            }
+        });
+
+        Promise.map(imagestoinsert,function(image){
+            return insertimage(image);
+        }, {concurrency:4})
+        .then(function(){
+            console.log(new Date().toISOString()+ " - *** Inserted all images, now creating thumbs. ***");
+            return Promise.map(thumbstocreate, function(image){
+                return createthumb(image);
+            },{concurrency:6});
+        })
+        .then(function(){
+            console.log(new Date().toISOString()+ " - *** Created all thumbs, now deleting missing thumbnails. ***");
+            return Promise.map(thumbstodelete, function(thumb){
+                return deletefile(thumb);
+            },{concurrency:4})
+        })
+        .then(function(){
+            console.log(new Date().toISOString()+ " - *** Deleted all thumbs, now removing missing images from DB. ***");
+            if (imagestodelete.length > 0) {
+                return db.deleteImages({_id:{$in: imagestodelete}});
+            };
+        })
+        .then(function(){
+            let ts = Math.abs(new Date().getTime() - started_at.getTime())/1000;
+            console.log(new Date().toISOString()+ " - *** Finished scan: "+Math.floor(ts/(60))+"m "+Math.round(ts%60)+"s. ***");
+        })
+        .catch(function(error){
+            console.log(new Date().toISOString+" - Error: "+error);
         });
 
     });
