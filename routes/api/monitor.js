@@ -90,7 +90,7 @@ router.get('/current', function(req, res, next) {
 // get historical values for all metrics of some type
 router.get('/:type', function(req, res, next) {
 
-    db.metricsOfType(req.params.type,ini,end,sampling)
+    db.getMetricsByType(req.params.type,ini,end,sampling)
     .then(transform)
     .then(function(result){sendresult(res,result);})
     .catch(function(error){
@@ -122,8 +122,10 @@ router.get('/:type/:name', function(req, res, next) {
 // get current value for a type and a name
 router.get('/:type/:name/current', function(req, res, next) {
 
-    db.currentMetricsOfTypeAndName(req.params.type,req.params.name)
-    .then(function(result){sendresult(res,result);})
+    db.getCurrentValueByTypeAndName(req.params.type,req.params.name)
+    .then(function(result){
+        sendresult(res,result);
+    })
     .catch(function(error){
         next(error);
     });

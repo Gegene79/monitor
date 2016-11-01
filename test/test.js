@@ -35,9 +35,10 @@ describe("metric API", function() {
 
         it("returns status 200", function(done) {
             request(url+'/current', function(error, response, body) {
-                console.log(response.body);
+                
                 expect(response.statusCode).to.equal(200);
-                expect(response.body.value).to.equal(value);
+                console.log("response.body: "+response.body);
+                expect(response.body[0].value).to.equal(value);
                 done();
             });
         });

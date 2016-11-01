@@ -128,7 +128,7 @@ exports.getMetrics = function(datemin,datemax,sampling){
                 //"stdev": { "$stdDevPop": "$value"}
             }
         }
-    ]);
+    ]).toArray();
 };
 
 
@@ -167,7 +167,7 @@ exports.getMetricsByType = function(type,datemin,datemax,sampling){
         {
         "$sort": { '_id.type': 1, '_id.name': 1, '_id.timestamp': 1 } 
         }
-    ]);
+    ]).toArray();
 };
 
 
@@ -203,7 +203,7 @@ exports.getMetricsByTypeAndName = function(type,name,datemin,datemax,sampling){
                 //"stdev": { "$stdDevPop": "$value"}
             }
         }
-    ]);
+    ]).toArray();
 };
 
 exports.getCurrentValueByTypeAndName = function(type,name){
@@ -213,7 +213,7 @@ exports.getCurrentValueByTypeAndName = function(type,name){
         { $match : { name: name, type: type } },
         { $group: {_id: "", timestamp: {$last: "$timestamp" }, value: { $last: '$value'}}},
         { $sort: {_id: 1}}
-        ]);
+        ]).toArray();
 };
 
 exports.getCurrentValueByType = function(type){
@@ -223,7 +223,7 @@ exports.getCurrentValueByType = function(type){
         { $match: {type: type}},
         { $group: {_id: "$name", timestamp: {$last: "$timestamp" }, value: { $last: '$value'}}},
         { $sort: {_id: 1}}
-        ]);
+        ]).toArray();
 };
 
 exports.getCurrentValues = function(){
@@ -232,5 +232,5 @@ exports.getCurrentValues = function(){
         [
         { $group: {_id: {name:"$name", type:"$type"}, timestamp: {$last: "$timestamp" }, value: { $last: '$value'}}},
         { $sort: {_id: 1}}
-        ]);
+        ]).toArray();
 };
