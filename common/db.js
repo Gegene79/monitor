@@ -4,9 +4,6 @@ const DB_URL = process.env.DB_URL;
 var database;
 var metrics;
 var images;
-var mbuffer = new Map();
-const MAXDEV = new Map([["temperature", 5 / 6000],["humidity",10 / 6000]]); // temperature => 5ºC per minute, humidity => 10% per minute 
-
 
 
 exports.connect = function(callback){
@@ -43,6 +40,10 @@ exports.connect = function(callback){
     callback();
   });  
 };
+
+
+/**** Gallery Section ****/
+
 
 exports.listAllImages = function(){
     // empty filter {}, returns path, ctime and mtime
@@ -87,33 +88,149 @@ exports.deleteImages = function(filter){
     });
 };
 
+
+/**** Metric Section ****/
+
 exports.insertMetric = function(metric) {
 	
-    if ((metric.type) && (metric.name)){
-        var key = metric.type+"."+metric.name;
-    } else {
-        return Promise.reject(new Error("Metric uncomplete "+metric));
-    }
-
-    if (!(metric.period)) {
-        metric.period = 'm';
-    }
-    if (!(metric.timestamp)){
-        metric.timestamp = new Date();
-    }
-    
-    if (mbuffer.has(key)) {
-        let valuediff = Math.abs(metric.value - mbuffer.get(key).value);
-        let timediff = Math.abs(metric.timestamp.getTime() - mbuffer.get(key).timestamp.getTime());
-        let limit = MAXDEV.get(metric.type);
-
-        if ( (valuediff / timediff) > MAXDEV.get(metric.type) ){ 
-            // too much metric change for elapsed time...
-            // replace erroneous value with last know value.
-            metric.value = mbuffer.get(key).value;            
-        }
-    }
-    mbuffer.set(key,metric); // add or replace in Map.
-        
     return metrics.insertOne(metric);
-}
+};
+
+// get values for all metrics
+exports.getMetrics = function(datemin,datemax,sampling){
+    
+    return metrics.aggregate(
+        [
+         { $match : {
+                    timestamp: {$gte: new Date(datemin), $lte: new Date(datemax)} 
+                }
+        },   
+        { "$group": {
+                "_id": {
+                    timestamp: {
+                        "$add": [
+                            { "$subtract": [
+                                { "$subtract": [ "$timestamp", new Date(0) ] },
+                                { "$mod": [ 
+                                    { "$subtract": [ "$timestamp", new Date(0) ] }, sampling]}
+                                ]},
+                            new Date(0)
+                            ]
+                        },
+                        name:"$name", type:"$type"
+                },
+                //"count": { "$sum": 1 },
+                //"first": { "$first": "$value"},
+                //"last": { "$last": "$value"},
+                "avg": { "$avg": "$value"}//,
+                //"min": { "$min": "$value"},
+                //"max": { "$max": "$value"},
+                //"stdev": { "$stdDevPop": "$value"}
+            }
+        }
+    ]);
+};
+
+
+exports.getMetricsByType = function(type,datemin,datemax,sampling){
+    
+    return metrics.aggregate(
+        [
+         { $match : {
+                    type: type,
+                    timestamp: {$gte: new Date(datemin), $lte: new Date(datemax)} 
+                }
+        },   
+        { "$group": {
+                "_id": {
+                    timestamp: {
+                        "$add": [
+                            { "$subtract": [
+                                { "$subtract": [ "$timestamp", new Date(0) ] },
+                                { "$mod": [ 
+                                    { "$subtract": [ "$timestamp", new Date(0) ] }, sampling ]}
+                                ]},
+                            new Date(0)
+                            ]
+                        },
+                        name:"$name"
+                },
+                //"count": { "$sum": 1 },
+                //"first": { "$first": "$value"},
+                //"last": { "$last": "$value"},
+                "avg": { "$avg": "$value"}//,
+                //"min": { "$min": "$value"},
+                //"max": { "$max": "$value"},
+                //"stdev": { "$stdDevPop": "$value"}
+            }
+        },
+        {
+        "$sort": { '_id.type': 1, '_id.name': 1, '_id.timestamp': 1 } 
+        }
+    ]);
+};
+
+
+exports.getMetricsByTypeAndName = function(type,name,datemin,datemax,sampling){
+
+    return metrics.aggregate(
+        [
+         { $match : {
+                    name: name,
+                    type: type,
+                    timestamp: {$gte: new Date(datemin), $lte: new Date(datemax)} 
+                }
+        },   
+        { "$group": {
+                "_id": {
+                    timestamp: {
+                        "$add": [
+                            { "$subtract": [
+                                { "$subtract": [ "$timestamp", new Date(0) ] },
+                                { "$mod": [ 
+                                    { "$subtract": [ "$timestamp", new Date(0) ] }, sampling ]}
+                                ]},
+                            new Date(0)
+                            ]
+                        }
+                },
+                //"count": { "$sum": 1 },
+                //"first": { "$first": "$value"},
+                //"last": { "$last": "$value"},
+                "avg": { "$avg": "$value"}//,
+                //"min": { "$min": "$value"},
+                //"max": { "$max": "$value"},
+                //"stdev": { "$stdDevPop": "$value"}
+            }
+        }
+    ]);
+};
+
+exports.getCurrentValueByTypeAndName = function(type,name){
+
+    return metrics.aggregate(
+        [
+        { $match : { name: name, type: type } },
+        { $group: {_id: "", timestamp: {$last: "$timestamp" }, value: { $last: '$value'}}},
+        { $sort: {_id: 1}}
+        ]);
+};
+
+exports.getCurrentValueByType = function(type){
+
+    return metrics.aggregate(
+        [
+        { $match: {type: type}},
+        { $group: {_id: "$name", timestamp: {$last: "$timestamp" }, value: { $last: '$value'}}},
+        { $sort: {_id: 1}}
+        ]);
+};
+
+exports.getCurrentValues = function(){
+
+    return metrics.aggregate(
+        [
+        { $group: {_id: {name:"$name", type:"$type"}, timestamp: {$last: "$timestamp" }, value: { $last: '$value'}}},
+        { $sort: {_id: 1}}
+        ]);
+};

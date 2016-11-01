@@ -1,12 +1,49 @@
 "use strict";
+var Promise = require("bluebird");
 var express = require('express');
 var router = express.Router();
 var db = require('../../common/db');
 var ini = new Date();
 var end = new Date();
-var min =  60*1000;
-var hour = 60*min;
-var sampling; 
+const min =  60*1000;
+const hour = 60*min;
+var sampling;
+var mbuffer = new Map();
+const MAXDEV = new Map([["temperature", 5 / 6000],["humidity",10 / 6000]]); // temperature => 5ºC per minute, humidity => 10% per minute 
+
+
+
+/*** Utility functions ***/
+
+function transform(docs){
+
+    return new Promise(function(resolve,reject){
+
+        var result = [];
+        docs.forEach(function(entry){
+
+            var datapoint = { x: entry._id.timestamp, y: entry.avg };
+            var exist_metric = result.find(function(a) {
+                    return (a.key == entry._id.name);
+                });
+
+            if (exist_metric){ // la metrica con nombre _id.name ya esta en result, solo hay que añadir el datapoint
+                exist_metric.values.push(datapoint);
+            } else { // la metrica no esta en result, hay que añadirla con su primer datapoint
+                var metric = {key : entry._id.name, values: [datapoint] };
+                result.push(metric);
+            }
+        });
+
+        return resolve(result);
+    });
+};
+
+function sendresult(res,result){
+      res.status(200).json(result);
+};
+
+/*** Defaults parameters ***/
 
 router.use(function (req, res, next) {
 
@@ -27,242 +64,104 @@ router.use(function (req, res, next) {
     next();
 });
 
-/* GET metrics listing. */
+
+// get historical values for all metrics
 router.get('/', function(req, res, next) {
-  db.Metric.aggregate([   
-        { $group: {
-            _id: {'type':'$type', 'name': '$name'},
-            count: { $sum: 1 }
-        }}
-    ], function (err, result) {
-        if (err) {
-            console.log(err);
-            return;
-        }
-        res.json(result);
+    
+    db.getMetrics(ini,end,sampling)
+    .then(transform)
+    .then(function(result){sendresult(res,result);})
+    .catch(function(error){
+        next(error);
     });
 });
 
-router.get('/types', function(req, res, next) {
-  db.Metric.aggregate([   
-        { $group: {
-            _id: '$type',
-            count: { $sum: 1 }
-        }}
-    ], function (err, result) {
-        if (err) {
-            console.log(err);
-            return;
-        }
-        res.json(result);
-    });
-});
-
-router.get('/names', function(req, res, next) {
-  db.Metric.aggregate([   
-        { $group: {
-            _id: '$name',
-            count: { $sum: 1 }
-        }}
-    ], function (err, result) {
-        if (err) {
-            console.log(err);
-            return;
-        }
-        res.json(result);
-    });
-});
-
-
-router.get('/', function(req, res, next) {
-    db.Metric.aggregate(
-        [
-         { $match : {
-                    timestamp: {$gte: new Date(ini), $lte: new Date(end)} 
-                }
-        },   
-        { "$group": {
-                "_id": {
-                    timestamp: {
-                        "$add": [
-                            { "$subtract": [
-                                { "$subtract": [ "$timestamp", new Date(0) ] },
-                                { "$mod": [ 
-                                    { "$subtract": [ "$timestamp", new Date(0) ] }, sampling]}
-                                ]},
-                            new Date(0)
-                            ]
-                        },
-                        name:"$name", type:"$type"
-                },
-                //"count": { "$sum": 1 },
-                //"first": { "$first": "$value"},
-                //"last": { "$last": "$value"},
-                "avg": { "$avg": "$value"}//,
-                //"min": { "$min": "$value"},
-                //"max": { "$max": "$value"},
-                //"stdev": { "$stdDevPop": "$value"}
-            }
-        }
-    ],
-    function (err, docs) {
-        
-        res.json(docs);
-    });
-});
-
-// get current values
+// get current values for all metrics
 router.get('/current', function(req, res, next) {
     
-    db.Metric.aggregate(
-        [
-        { $group: {_id: {name:"$name", type:"$type"}, timestamp: {$last: "$timestamp" }, value: { $last: '$value'}}},
-        { $sort: {_id: 1}}
-        ], 
-        function (err, docs) {
-            res.json(docs);
+    db.getCurrentValues()
+    .then(function(result){sendresult(res,result);})
+    .catch(function(error){
+        next(error);
     });
 });
 
+
+// get historical values for all metrics of some type
 router.get('/:type', function(req, res, next) {
-    db.Metric.aggregate(
-        [
-         { $match : {
-                    type: req.params.type,
-                    timestamp: {$gte: new Date(ini), $lte: new Date(end)} 
-                }
-        },   
-        { "$group": {
-                "_id": {
-                    timestamp: {
-                        "$add": [
-                            { "$subtract": [
-                                { "$subtract": [ "$timestamp", new Date(0) ] },
-                                { "$mod": [ 
-                                    { "$subtract": [ "$timestamp", new Date(0) ] }, sampling ]}
-                                ]},
-                            new Date(0)
-                            ]
-                        },
-                        name:"$name"
-                },
-                //"count": { "$sum": 1 },
-                //"first": { "$first": "$value"},
-                //"last": { "$last": "$value"},
-                "avg": { "$avg": "$value"}//,
-                //"min": { "$min": "$value"},
-                //"max": { "$max": "$value"},
-                //"stdev": { "$stdDevPop": "$value"}
-            }
-        },
-        {
-        "$sort": { '_id.type': 1, '_id.name': 1, '_id.timestamp': 1 } 
-        }
-    ],
-    function (err, docs) {
 
-    var result = [];
-        docs.forEach(function(entry){
-
-            var datapoint = { x: entry._id.timestamp, y: entry.avg };
-            var exist_metric = result.find(function(a) {
-                    return (a.key == entry._id.name);
-                });
-
-            if (exist_metric){ // la metrica con nombre _id.name ya esta en result, solo hay que añadir el datapoint
-                exist_metric.values.push(datapoint);
-            } else { // la metrica no esta en result, hay que añadirla con su primer datapoint
-                var metric = {key : entry._id.name, values: [datapoint] };
-                result.push(metric);
-            }
-        });
-
-        res.json(result);
+    db.metricsOfType(req.params.type,ini,end,sampling)
+    .then(transform)
+    .then(function(result){sendresult(res,result);})
+    .catch(function(error){
+        next(error);
     });  
-
 });
 
-// get current values of some type
+// get current values of all metrics of some type
 router.get('/:type/current', function(req, res, next) {
-    
-    db.Metric.aggregate(
-        [
-        { $match: {type: req.params.type}},
-        { $group: {_id: "$name", timestamp: {$last: "$timestamp" }, value: { $last: '$value'}}},
-        { $sort: {_id: 1}}
-        ], 
-        function (err, docs) {
-            res.json(docs);
+
+    db.getCurrentValueByType(req.params.type)
+    .then(function(result){sendresult(res,result);})
+    .catch(function(error){
+        next(error);
     });
 });
 
-
-
+// get historical values for a type and a name
 router.get('/:type/:name', function(req, res, next) {
-    db.Metric.aggregate(
-        [
-         { $match : {
-                    name: req.params.name,
-                    type: req.params.type,
-                    timestamp: {$gte: new Date(ini), $lte: new Date(end)} 
-                }
-        },   
-        { "$group": {
-                "_id": {
-                    timestamp: {
-                        "$add": [
-                            { "$subtract": [
-                                { "$subtract": [ "$timestamp", new Date(0) ] },
-                                { "$mod": [ 
-                                    { "$subtract": [ "$timestamp", new Date(0) ] }, sampling ]}
-                                ]},
-                            new Date(0)
-                            ]
-                        }
-                },
-                //"count": { "$sum": 1 },
-                //"first": { "$first": "$value"},
-                //"last": { "$last": "$value"},
-                "avg": { "$avg": "$value"}//,
-                //"min": { "$min": "$value"},
-                //"max": { "$max": "$value"},
-                //"stdev": { "$stdDevPop": "$value"}
-            }
-        }
-    ],
-    function (err, docs) {
-        res.json(docs);
-    });
+    
+    db.getMetricsByTypeAndName(req.params.type,req.params.name,ini,end,sampling)
+    .then(transform)
+    .then(function(result){sendresult(res,result);})
+    .catch(function(error){
+        next(error);
+    });  
 });
 
-// get most up-to-date value for a type and a name
+// get current value for a type and a name
 router.get('/:type/:name/current', function(req, res, next) {
 
-  db.Metric.aggregate(
-        [
-        { $match : { name: req.params.name, type: req.params.type } },
-        { $group: {_id: "", timestamp: {$last: "$timestamp" }, value: { $last: '$value'}}},
-        { $sort: {_id: 1}}
-        ], 
-        function (err, docs) {
-            res.json(docs);
+    db.currentMetricsOfTypeAndName(req.params.type,req.params.name)
+    .then(function(result){sendresult(res,result);})
+    .catch(function(error){
+        next(error);
     });
 });
 
 // insert metric
 router.post('/:type/:name', function(req,res,next){
-  req.body.name = req.params.name;
-  req.body.type = req.params.type;
 
-  db.insertMetric(req.body)
-  .then(function(result){
-      res.status(200).json(result);
-  })
-  .catch(function(error){
-      console.log(error);
-      res.status(500).json(error);
-  });
+    var metric = req.body;
+    metric.name = req.params.name;
+    metric.type = req.params.type;
+
+    var key = metric.type+"."+metric.name;
+    
+    if (!(metric.period)) {
+        metric.period = 'm';
+    }
+    if (!(metric.timestamp)){
+        metric.timestamp = new Date();
+    }
+    
+    if (mbuffer.has(key)) {
+        let valuediff = Math.abs(metric.value - mbuffer.get(key).value);
+        let timediff = Math.abs(metric.timestamp.getTime() - mbuffer.get(key).timestamp.getTime());
+        let limit = MAXDEV.get(metric.type);
+
+        if ( (valuediff / timediff) > MAXDEV.get(metric.type) ){ 
+            // too much metric change for elapsed time... do not insert data.
+            next(new Error("Erroneous value, difference of "+valuediff.toFixed(1)+" units in "+timediff.toFixed(0)+"seconds."));           
+        }
+    }
+    mbuffer.set(key,metric); // add or replace in Map.
+
+    db.insertMetric(metric)
+    .then(function(result){sendresult(res,result);})
+    .catch(function(error){
+        next(error);
+    });
 });
-
 
 module.exports = router;
