@@ -52,11 +52,27 @@ exports.listAllImages = function(){
 
 exports.insertImage = function(image){
     image.loaded_at = new Date();
-    return images.insertOne(image);
+    return images.insertOne(image)
+    .then(function(result){
+        console.log(new Date().toISOString()+ " - inserted "+result.ops[0].filename);
+        return Promise.resolve(result);
+    })
+    .catch(function(error){
+        console.log(new Date().toISOString()+ " - error in inserting image in db : "+error);
+        return Promise.reject(error);
+    });
 };
 
 exports.deleteImage = function(id){
-    return images.deleteOne({_id: id});
+    return images.deleteOne({_id: id})
+    .then(function(res){
+        console.log(new Date().toISOString()+ " - removed image from db: "+id);
+        return Promise.resolve(res);
+    })
+    .catch(function(error){
+        console.log(new Date().toISOString()+ " - error in removing image from db : "+error);
+        return Promise.reject(error);
+    });
 };
 
 exports.deleteImages = function(filter){
@@ -73,7 +89,7 @@ exports.deleteImages = function(filter){
 
 exports.insertMetric = function(metric) {
 	
-    if ((metric.type) && (metric.key)){
+    if ((metric.type) && (metric.name)){
         var key = metric.type+"."+metric.name;
     } else {
         return Promise.reject(new Error("Metric uncomplete "+metric));
@@ -99,5 +115,5 @@ exports.insertMetric = function(metric) {
     }
     mbuffer.set(key,metric); // add or replace in Map.
         
-    return metrics.imsertOne(metric);
+    return metrics.insertOne(metric);
 }

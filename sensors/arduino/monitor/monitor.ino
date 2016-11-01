@@ -21,7 +21,7 @@ DHT dht(DHTPIN, DHTTYPE);
 HTTPClient http;
 const char* SSID = "bichito";     //  your network SSID (name) 
 const char* PASS = "vivifafa";  // your network password
-const char* NAME = "Pierre";
+const char* NAME = "Exterior";
 const char* BASE_URL = "http://192.168.1.2/node/api/";
 const char* PAR_TEMP = "temperature/";
 const char* PAR_HUM = "humidity/";
@@ -45,12 +45,12 @@ void setup_wifi() {
       Serial.println(WiFi.status());
       Serial.println("Disconnecting. Next attempt within 20 seconds.");
       WiFi.disconnect();
-      delay(10000);
+      delay(20000);
       setup_wifi();
     }
     
     retries++;
-    delay(1000);
+    delay(2000);
     Serial.print(".");
   }
 

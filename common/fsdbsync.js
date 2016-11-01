@@ -109,7 +109,7 @@ function enrichimage(imgdetails){
             mtime : stats.mtime,
             ctime : stats.ctime,
             birthtime : stats.birthtime,
-            created_at : exifdata.exif.CreateDate,
+            created_at : new Date(exifdata.exif.CreateDate),
             info : exifdata.image,
             gps : exifdata.gps,
             exif : exifdata.exif
@@ -125,10 +125,6 @@ function insertimage(path){
     })
     .then(function(image){
         return db.insertImage(image);
-    })
-    .then(function(result){
-        console.log(new Date().toISOString()+ " - inserted "+result.ops[0].filename);
-        return Promise.resolve(result);
     })
     .catch(function (error){
         console.log('error en tratar imagen: '+error);

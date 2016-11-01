@@ -10,6 +10,7 @@ var db = require('./common/db');
 var filesync = require('./common/fsdbsync');
 var monitor = require('./routes/api/monitor');
 var gallery = require('./routes/api/gallery');
+var proxymonitor = require('./routes/api/proxymonitor');
 var app = express();
 
 // view engine setup
@@ -24,6 +25,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+
+app.use('/api',proxymonitor);
 app.use('/api/monitor', monitor);
 app.use('/api/gallery', gallery);
 app.use('/monitor', express.static('public'));
@@ -31,7 +34,6 @@ app.use('/monitor', express.static('public'));
 
 // Connect DB
 db.connect(function(){
-  setTimeout(filesync.scan,1000);
 });
 
 process.on( 'SIGINT', function() {
