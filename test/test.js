@@ -4,10 +4,10 @@ var request = require("request");
 
 describe("metric API", function() {
 
-    var url = "http://localhost:3000/api/monitor/prueba_type/prueba_name";
+    var url = "http://localhost:3000/api/prueba_type/prueba_name";
     var value = 20+Math.random()*10;
 
-    describe("insert metric", function() {
+    describe("insert metric with value "+value, function() {
 
         it("returns status 200", function(done) {
             var json = {
@@ -33,16 +33,20 @@ describe("metric API", function() {
 
     describe("retrieve metric data", function() {
 
-        it("returns status 200", function(done) {
+        
             request(url+'/current', function(error, response, body) {
                 
-                expect(response.statusCode).to.equal(200);
-                console.log("response.body: "+response.body);
-                expect(response.body[0].value).to.equal(value);
-                done();
+                it("returns status 200", function(done) {
+                    expect(response.statusCode).to.equal(200);
+                    done();
+                });
+                it("returns the value "+value,function(done){
+                    resp = JSON.parse(response.body);
+                    expect(resp[0].value).to.equal(value);
+                    done();
+                });
+                
             });
         });
 
     }); 
-
-});

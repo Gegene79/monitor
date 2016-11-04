@@ -9,7 +9,9 @@ const min =  60*1000;
 const hour = 60*min;
 var sampling;
 var mbuffer = new Map();
-const MAXDEV = new Map([["temperature", 5 / 6000],["humidity",10 / 6000]]); // temperature => 5ºC per minute, humidity => 10% per minute 
+const MAXDEV = new Map([["temperature", 5 / 60000],      // temperature => 5ºC per minute
+                        ["humidity",    10 / 60000],     // humidity => 10% per minute
+                        ["prueba_type", 10 / 60000]]);   // for testing purpose   
 
 
 
@@ -40,7 +42,8 @@ function transform(docs){
 };
 
 function sendresult(res,result){
-      res.status(200).json(result);
+    res.contentType('application/json');
+    res.status(200).json(result);
 };
 
 /*** Defaults parameters ***/
@@ -154,7 +157,7 @@ router.post('/:type/:name', function(req,res,next){
 
         if ( (valuediff / timediff) > MAXDEV.get(metric.type) ){ 
             // too much metric change for elapsed time... do not insert data.
-            next(new Error("Erroneous value, difference of "+valuediff.toFixed(1)+" units in "+timediff.toFixed(0)+"seconds."));           
+            return next(new Error("Erroneous value, difference of "+valuediff.toFixed(1)+" units in "+(timediff/1000).toFixed(0)+"seconds."));           
         }
     }
     mbuffer.set(key,metric); // add or replace in Map.
