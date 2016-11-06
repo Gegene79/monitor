@@ -4,19 +4,44 @@ var glob = Promise.promisifyAll(require("glob"));
 var path = Promise.promisifyAll(require("path"));
 var fs = Promise.promisifyAll(require("fs"));
 var gm = Promise.promisifyAll(require("gm"));
+var moment = require("moment");
+var os = require('os');
 var imageMagick = gm.subClass({ imageMagick: true });
 var db = require("./db");
 var ExifImage = require('exif').ExifImage;
 const IMAGES_DIR = process.env.IMAGES_DIR;
 const THUMBS_DIR = process.env.THUMBS_DIR;
+const THUMBS_L_HEIGHT = 1080;
+const THUMBS_S_HEIGHT = 540;
+const THUMBS_L_PREFIX = "l_";
+const THUMBS_S_PREFIX = "s_";
+const cpunb = os.cpus().length;
+
+function getthumbpath(imagepath,thumbprefix){
+    let dirpath = path.dirname(imagepath);
+    let imgbasename = path.basename(imagepath);
+    return THUMBS_DIR+dirpath.substring(IMAGES_DIR.length)+"/"+thumbprefix+imgbasename;
+};
+
+function getimagepath(thumbpath,thumbprefix){
+    let dirpath = path.dirname(thumbpath);
+    let imgbasename = path.basename(thumbpath).substring(thumbprefix.length);
+    return IMAGES_DIR+dirpath.substring(THUMBS_DIR.length)+"/"+imgbasename;
+};
+
+function getsibling(thumbpath,sourceprefix,targetprefix){
+    let dirpath = path.dirname(thumbpath);
+    let thumbname = path.basename(thumbpath);
+    return dirpath+"/"+targetprefix+thumbname.substring(sourceprefix.length);
+};
 
 
-function createthumb(image)  {
+function createthumb(image,thumbheight,thumbprefix)  {
 
     return new Promise(function(resolve, reject){
 
         // 
-        var thumb = THUMBS_DIR+image.substring(IMAGES_DIR.length);
+        var thumb = getthumbpath(image,thumbprefix);
 
         // obtain the size of an image
         imageMagick(image).size(function (err, size) {
@@ -26,7 +51,7 @@ function createthumb(image)  {
             } else {
                 //console.log(new Date().toISOString()+ ' - '+image+' size=' + size.width+'x'+size.height);
 
-                if (size.height > 1080)  {
+                if (size.height > thumbheight)  {
                     
                     if (!fs.existsSync(path.dirname(thumb))){
                         fs.mkdirSync(path.dirname(thumb));
@@ -34,7 +59,7 @@ function createthumb(image)  {
                     }
 
                     imageMagick(image)
-                    .resize(Math.round(size.width*1080/size.height), 1080)
+                    .resize(Math.round(size.width*thumbheight/size.height), thumbheight)
                     .autoOrient()
                     .write(thumb, function (err) {
                         if (err) {
@@ -100,16 +125,22 @@ function enrichimage(imgdetails){
         console.log(imgpath + " is not a file");
         return Promise.resolve(null);
     }
-        
+    // moment(exifdata.exif.CreateDate,['YYYY:MM:DD HH:mm:ss','YYYY/MM/DD HH:mm:ss');
+    let create_date = moment(exifdata.exif.CreateDate,'YYYY:MM:DD HH:mm:ss').toDate();
+    let thumb = getthumbpath(imgpath,THUMBS_L_PREFIX);
+    let sthumb = getsibling(thumb,THUMBS_L_PREFIX,THUMBS_S_PREFIX);
+
     var image = {
             path : imgpath,
             filename : path.basename(imgpath),
             dir : path.dirname(imgpath),
             extension : path.extname(imgpath),
+            largethumb: thumb,
+            smallthumb: sthumb,
             mtime : stats.mtime,
             ctime : stats.ctime,
             birthtime : stats.birthtime,
-            created_at : new Date(exifdata.exif.CreateDate),
+            created_at : create_date,
             info : exifdata.image,
             gps : exifdata.gps,
             exif : exifdata.exif
@@ -135,7 +166,7 @@ function insertimage(path){
 function scan() {
     var started_at = new Date();
     var imagespattern = IMAGES_DIR+"/**/*.jpg";
-    var thumbspattern = THUMBS_DIR+"/**/*.jpg";
+    var thumbspattern = THUMBS_DIR+"/**/"+THUMBS_L_PREFIX+"*.jpg";
 
     console.log(new Date().toISOString()+ " - *** Starting scan. ***");
 
@@ -161,12 +192,11 @@ function scan() {
             }
 
             let thb = fsthumbs.findIndex(function(element,index,array){
-                return ((IMAGES_DIR+element.substring(THUMBS_DIR.length)) == item);
+                return (getimagepath(element,THUMBS_L_PREFIX) == item);
             });
 
             if (thb < 0){
                 console.log(new Date().toISOString()+ " - file "+ path.basename(item) +" not found in thumbs");
-                //createthumb(item);
                 thumbstocreate.push(item);
             }
         });
@@ -186,7 +216,7 @@ function scan() {
         fsthumbs.forEach(function(item){
 
             let thb = fsimages.findIndex(function(element,index,array){
-                return ((THUMBS_DIR+element.substring(IMAGES_DIR.length)) == item);
+                return (getimagepath(element,THUMBS_L_PREFIX) == item);
             });
 
             if (thb < 0){ // esta en los thumbnails pero no en las imagenes
@@ -196,18 +226,20 @@ function scan() {
 
         Promise.map(imagestoinsert,function(image){
             return insertimage(image);
-        }, {concurrency:4})
+        }, {concurrency: cpunb*2})
         .then(function(){
             console.log(new Date().toISOString()+ " - *** Inserted all images, now creating thumbs. ***");
             return Promise.map(thumbstocreate, function(image){
-                return createthumb(image);
-            },{concurrency:6});
+                return createthumb(image,THUMBS_L_HEIGHT,THUMBS_L_PREFIX)
+                .then(function(r){return createthumb(image,THUMBS_S_HEIGHT,THUMBS_S_PREFIX)});
+            },{concurrency: cpunb});
         })
         .then(function(){
             console.log(new Date().toISOString()+ " - *** Created all thumbs, now deleting missing thumbnails. ***");
             return Promise.map(thumbstodelete, function(thumb){
-                return deletefile(thumb);
-            },{concurrency:4})
+                return deletefile(thumb)
+                .then(function(r){return deletefile(getsibling(thumb,THUMBS_L_PREFIX,THUMBS_S_PREFIX))});
+            },{concurrency: cpunb*2})
         })
         .then(function(){
             console.log(new Date().toISOString()+ " - *** Deleted all thumbs, now removing missing images from DB. ***");

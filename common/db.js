@@ -50,6 +50,29 @@ exports.listAllImages = function(){
      return images.find({},{'path':1,'ctime':1, 'mtime':1}).toArray();
 };
 
+exports.browseImages = function(skip,limit){
+
+    var query = {};
+
+    var options = {
+        'limit': limit,
+        'skip': skip,
+        'sort': [['created_at','desc']]
+    };
+
+    var fields = {
+        '_id':1,
+        'path':1,
+        'filename':1,
+        'dir':1,
+        'created_at':1,
+        'loaded_at':1
+    };
+
+    return images.find(query,fields,options).toArray();
+
+}
+
 
 exports.insertImage = function(image){
     image.loaded_at = new Date();
