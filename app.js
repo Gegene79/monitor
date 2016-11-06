@@ -1,3 +1,4 @@
+"use strict";
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
@@ -5,10 +6,11 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var routes = require('./routes/index');
-var api = require('./routes/api');
-var nvd3 = require('./routes/nvd3');
-var lists = require('./routes/lists');
-var db = require('./db/db')
+var db = require('./common/db');
+var filesync = require('./common/fsdbsync');
+var monitor = require('./routes/api/monitor');
+var gallery = require('./routes/api/gallery');
+var proxymonitor = require('./routes/api/proxymonitor');
 var app = express();
 
 // view engine setup
@@ -23,16 +25,19 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/api/metrics', lists);
-app.use('/api/nvd3', nvd3);
-app.use('/api', api);
+
+app.use('/api',proxymonitor);
+app.use('/api/monitor', monitor);
+app.use('/api/gallery', gallery);
 app.use('/monitor', express.static('public'));
 
+
 // Connect DB
-db.connect();
+db.connect(function(){
+});
 
 process.on( 'SIGINT', function() {
-  console.log( "\nGracefully shutting down from SIGINT (Ctrl-C)" );
+  console.log( "\nOn eteint tout apres ce SIGINT (Ctrl-C)" );
   // some other closing procedures go here
   process.exit();
 });
@@ -40,34 +45,17 @@ process.on( 'SIGINT', function() {
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
-  var err = new Error('Not Found');
+  var err = new Error('404 - Not Found');
   err.status = 404;
   next(err);
 });
 
-// error handlers
-
-// development error handler
-// will print stacktrace
-if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-      message: err.message,
-      error: err
-    });
-  });
-}
-
-// production error handler
-// no stacktraces leaked to user
+//error handler
 app.use(function(err, req, res, next) {
   res.status(err.status || 500);
-  res.render('error', {
-    message: err.message,
-    error: {}
-  });
+  console.error(err);
+  res.contentType(req.get('content-type'));
+  res.json(err);
 });
-
 
 module.exports = app;

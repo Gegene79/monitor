@@ -45,3 +45,6 @@ launch.json
 # ficheros Mac OSX
 .DS_Store
 
+# ficheros de entorno
+*.env
+
