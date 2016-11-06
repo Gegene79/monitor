@@ -11,6 +11,7 @@ var filesync = require('./common/fsdbsync');
 var monitor = require('./routes/api/monitor');
 var gallery = require('./routes/api/gallery');
 var proxymonitor = require('./routes/api/proxymonitor');
+var proxynode = require('./routes/api/proxynode');
 var app = express();
 
 // view engine setup
@@ -25,10 +26,10 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-
-app.use('/api',proxymonitor);
-app.use('/api/monitor', monitor);
-app.use('/api/gallery', gallery);
+//app.use('/node/api',proxynode);
+app.use('*/api',proxymonitor);
+app.use('*/api/monitor', monitor);
+app.use('*/api/gallery', gallery);
 app.use('/monitor', express.static('public'));
 
 
