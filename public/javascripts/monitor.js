@@ -1,4 +1,4 @@
-var API_BASEURL = "/api";
+var API_BASEURL = "/node/api";
 var TIMER_G2H = 60*1000;
 var TIMER_CURRENT = 60*1000;
 var TIMER_GWEEK = 5*60*1000;
