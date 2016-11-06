@@ -63,6 +63,8 @@ exports.browseImages = function(skip,limit){
     var fields = {
         '_id':1,
         'path':1,
+        'largethumb': 1,
+        'smallthumb': 1,
         'filename':1,
         'dir':1,
         'created_at':1,

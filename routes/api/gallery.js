@@ -12,10 +12,10 @@ var skip = 0;
 router.use(function (req, res, next) {
 
     if (req.query.limit){
-        limit = req.query.limit;
+        limit = parseInt(req.query.limit);
     }
     if (req.query.skip){
-        skip = req.query.skip;
+        skip = parseInt(req.query.skip);
     }
 
     next();
