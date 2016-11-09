@@ -77,16 +77,20 @@ exports.browseImages = function(skip,limit){
 
 
 exports.insertImage = function(image){
-    image.loaded_at = new Date();
-    return images.insertOne(image)
-    .then(function(result){
-        console.log(new Date().toISOString()+ " - inserted "+result.ops[0].filename);
-        return Promise.resolve(result);
-    })
-    .catch(function(error){
-        console.log(new Date().toISOString()+ " - error in inserting image in db : "+error);
-        return Promise.reject(error);
-    });
+    if (image!=null){
+        image.loaded_at = new Date();
+        return images.insertOne(image)
+        .then(function(result){
+            console.log(new Date().toISOString()+ " - inserted "+result.ops[0].filename);
+            return Promise.resolve(result);
+        })
+        .catch(function(error){
+            console.log(new Date().toISOString()+ " - error in inserting image in db : "+error);
+            return Promise.reject(error);
+        });
+    } else {
+        return Promise.resolve(null);
+    }
 };
 
 exports.deleteImage = function(id){
@@ -152,6 +156,9 @@ exports.getMetrics = function(datemin,datemax,sampling){
                 //"max": { "$max": "$value"},
                 //"stdev": { "$stdDevPop": "$value"}
             }
+        },
+        {
+        "$sort": { '_id.type': 1, '_id.name': 1, '_id.timestamp': 1 } 
         }
     ]).toArray();
 };
@@ -190,7 +197,7 @@ exports.getMetricsByType = function(type,datemin,datemax,sampling){
             }
         },
         {
-        "$sort": { '_id.type': 1, '_id.name': 1, '_id.timestamp': 1 } 
+        "$sort": { '_id.name': 1, '_id.timestamp': 1 } 
         }
     ]).toArray();
 };
@@ -227,6 +234,9 @@ exports.getMetricsByTypeAndName = function(type,name,datemin,datemax,sampling){
                 //"max": { "$max": "$value"},
                 //"stdev": { "$stdDevPop": "$value"}
             }
+        },
+        {
+        "$sort": { '_id.timestamp': 1 } 
         }
     ]).toArray();
 };

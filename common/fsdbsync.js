@@ -55,7 +55,7 @@ function createthumb(image,thumbheight,thumbprefix)  {
                     
                     if (!fs.existsSync(path.dirname(thumb))){
                         fs.mkdirSync(path.dirname(thumb));
-                        console.log(new Date().toISOString()+ ' - created dir ' + path.dirname(thumb));
+                        console.log('created dir ' + path.dirname(thumb));
                     }
 
                     imageMagick(image)
@@ -66,7 +66,7 @@ function createthumb(image,thumbheight,thumbprefix)  {
                             console.log(err);
                             return reject(err);
                         } else {
-                            console.log(new Date().toISOString()+ ' - Created thumb '+thumb);
+                            console.log('created thumb '+thumb);
                             return resolve(thumb);
                         }
                     });
@@ -81,14 +81,14 @@ function deletefile(thumb){
     if (thumb.startsWith(THUMBS_DIR)){
         return fs.unlinkAsync(thumb)
         .then(function(result){
-            console.log(new Date().toISOString()+" - deleted "+thumb);
+            console.log("deleted "+thumb);
             return Promise.resolve(result);
         })
         .catch(function(error){
-            return Promise.reject(new Error(new Date().toISOString()+" - error intentando borrar fichero "+thumb));
+            return Promise.reject(new Error("error intentando borrar fichero "+thumb));
         });
     } else {
-        return Promise.reject(new Error(new Date().toISOString()+" - solo se admite borrar en thumbs. aqui: "+thumb));
+        return Promise.reject(new Error("solo se admite borrar en thumbs. aqui: "+thumb));
     }
 }
 
@@ -99,15 +99,15 @@ function getexif(path){
         try {
             new ExifImage({ image : path }, function (error, exifData) {
                 if (error){
-                    console.log(new Date().toISOString()+ ' - Error in getexif: ' + error.message);
-                    reject(error);
+                    console.log('Error in getexif for '+path+': '+ error.message);
+                    resolve(null);
                 } else {
                     resolve(exifData);
                 }
             });
         } catch (error) {
-            console.log(new Date().toISOString()+ ' - getexif error: ' + error.message);
-            reject(error);
+            console.log('getexif error for '+path+': '+ error.message);
+            resolve(null);
         }
     });
 };
@@ -126,7 +126,6 @@ function enrichimage(imgdetails){
         return Promise.resolve(null);
     }
     // moment(exifdata.exif.CreateDate,['YYYY:MM:DD HH:mm:ss','YYYY/MM/DD HH:mm:ss');
-    let create_date = moment(exifdata.exif.CreateDate,'YYYY:MM:DD HH:mm:ss').toDate();
     let thumb = getthumbpath(imgpath,THUMBS_L_PREFIX);
     let sthumb = getsibling(thumb,THUMBS_L_PREFIX,THUMBS_S_PREFIX);
 
@@ -139,12 +138,16 @@ function enrichimage(imgdetails){
             smallthumb: sthumb,
             mtime : stats.mtime,
             ctime : stats.ctime,
-            birthtime : stats.birthtime,
-            created_at : create_date,
-            info : exifdata.image,
-            gps : exifdata.gps,
-            exif : exifdata.exif
+            birthtime : stats.birthtime
     };
+
+    if (exifdata!=null){
+        let create_date = moment(exifdata.exif.CreateDate,'YYYY:MM:DD HH:mm:ss').toDate();
+        image.created_at=create_date;
+        image.info=exifdata.image;
+        image.gps=exifdata.gps;
+        image.exif=exifdata.exif;
+    }
 
     return Promise.resolve(image);
 }
@@ -168,7 +171,7 @@ function scan() {
     var imagespattern = IMAGES_DIR+"/**/*.jpg";
     var thumbspattern = THUMBS_DIR+"/**/"+THUMBS_L_PREFIX+"*.jpg";
 
-    console.log(new Date().toISOString()+ " - *** Starting scan. ***");
+    console.log("*** Starting scan. ***");
 
     Promise.all([glob.globAsync(imagespattern,{nocase:true}),
                  db.listAllImages(), 
@@ -186,7 +189,7 @@ function scan() {
             let im = dbimages.findIndex(function(element,index,array){return element.path==item});
 
             if (im < 0){
-                console.log(new Date().toISOString()+ " - file "+ path.basename(item) +" not found in db");
+                //console.log("file not found in db: "+ item);
                 //insertimage(item);
                 imagestoinsert.push(item);
             }
@@ -196,7 +199,7 @@ function scan() {
             });
 
             if (thb < 0){
-                console.log(new Date().toISOString()+ " - file "+ path.basename(item) +" not found in thumbs");
+                //console.log("file not found in thumbs: "+ item);
                 thumbstocreate.push(item);
             }
         });
@@ -224,32 +227,34 @@ function scan() {
             }
         });
 
+        console.log("*** Finished initial scan. Images to insert:"+imagestoinsert.length+", thumbs to create: "+thumbstocreate.length+" ***");
+
         Promise.map(imagestoinsert,function(image){
             return insertimage(image);
         }, {concurrency: cpunb*2})
         .then(function(){
-            console.log(new Date().toISOString()+ " - *** Inserted all images, now creating thumbs. ***");
+            console.log("*** Inserted all images, now creating thumbs. ***");
             return Promise.map(thumbstocreate, function(image){
                 return createthumb(image,THUMBS_L_HEIGHT,THUMBS_L_PREFIX)
                 .then(function(r){return createthumb(image,THUMBS_S_HEIGHT,THUMBS_S_PREFIX)});
             },{concurrency: cpunb});
         })
         .then(function(){
-            console.log(new Date().toISOString()+ " - *** Created all thumbs, now deleting missing thumbnails. ***");
+            console.log("*** Created all thumbs, now deleting missing thumbnails. ***");
             return Promise.map(thumbstodelete, function(thumb){
                 return deletefile(thumb)
                 .then(function(r){return deletefile(getsibling(thumb,THUMBS_L_PREFIX,THUMBS_S_PREFIX))});
             },{concurrency: cpunb*2})
         })
         .then(function(){
-            console.log(new Date().toISOString()+ " - *** Deleted all thumbs, now removing missing images from DB. ***");
+            console.log("*** Deleted all thumbs, now removing missing images from DB. ***");
             if (imagestodelete.length > 0) {
                 return db.deleteImages({_id:{$in: imagestodelete}});
             };
         })
         .then(function(){
             let ts = Math.abs(new Date().getTime() - started_at.getTime())/1000;
-            console.log(new Date().toISOString()+ " - *** Finished scan: "+Math.floor(ts/(60))+"m "+Math.round(ts%60)+"s. ***");
+            console.log("*** Finished scan: "+Math.floor(ts/(60))+"m "+Math.round(ts%60)+"s. ***");
         })
         .catch(function(error){
             console.log(new Date().toISOString+" - Error: "+error);
