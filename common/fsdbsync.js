@@ -54,6 +54,7 @@ function createthumb(image,thumbheight,thumbprefix)  {
                 if (size.height > thumbheight)  {
                     
                     if (!fs.existsSync(path.dirname(thumb))){
+                        console.log('creating dir ' + path.dirname(thumb));
                         fs.mkdirSync(path.dirname(thumb));
                         console.log('created dir ' + path.dirname(thumb));
                     }
