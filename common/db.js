@@ -1,6 +1,8 @@
 "use strict";
 var MongoClient = require('mongodb').MongoClient;
 const DB_URL = process.env.DB_URL;
+const COLL_IMAGES = process.env.COLL_IMAGES;
+const COLL_METRICS = process.env.COLL_METRICS;
 var database;
 var metrics;
 var images;
@@ -16,8 +18,8 @@ exports.connect = function(callback){
     } else {
         console.log("Connected to database.");
         database = db;
-        images = db.collection('images');
-        metrics = db.collection('metrics');
+        images = db.collection(COLL_IMAGES);
+        metrics = db.collection(COLL_METRICS);
 
         exports.Images = images;
         exports.Metrics = metrics;
