@@ -17,17 +17,6 @@ const THUMBS_L_PREFIX = "l_";
 const THUMBS_S_PREFIX = "s_";
 const cpunb = os.cpus().length;
 
-function isDirSync(aPath) {
-  try {
-    return fs.statSync(aPath).isDirectory();
-  } catch (e) {
-    if (e.code === 'ENOENT') {
-      return false;
-    } else {
-      throw e;
-    }
-  }
-}
 
 function getthumbpath(imagepath,thumbprefix){
     let dirpath = path.dirname(imagepath);
@@ -78,6 +67,14 @@ function createthumb(image,thumbheight,thumbprefix)  {
                             console.log('created thumb '+thumb);
                             return resolve(thumb);
                         }
+                    });
+                } else {
+                    fs.copyAsync(image,thumb)
+                    .then(function(result){
+                        console.log('copied image '+ image+' as thumb '+thumb);
+                        return resolve(thumb);
+                    }).catch(function(error){
+                        return reject(error);
                     });
                 }
             }
