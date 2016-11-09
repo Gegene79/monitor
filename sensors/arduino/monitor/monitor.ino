@@ -22,7 +22,7 @@ HTTPClient http;
 const char* SSID = "bichito";     //  your network SSID (name) 
 const char* PASS = "vivifafa";  // your network password
 const char* NAME = "Exterior";
-const char* BASE_URL = "http://192.168.1.2/node/api/";
+const char* BASE_URL = "http://192.168.1.2/api/monitor";
 const char* PAR_TEMP = "temperature/";
 const char* PAR_HUM = "humidity/";
 const long  DELAY = 60*1000; //60 seconds
