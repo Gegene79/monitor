@@ -2,7 +2,7 @@
 var Promise = require("bluebird");
 var glob = Promise.promisifyAll(require("glob"));
 var path = Promise.promisifyAll(require("path"));
-var fs = Promise.promisifyAll(require("fs"));
+var fs = Promise.promisifyAll(require("fs-extra"));
 var gm = Promise.promisifyAll(require("gm"));
 var moment = require("moment");
 var os = require('os');
@@ -65,10 +65,7 @@ function createthumb(image,thumbheight,thumbprefix)  {
 
                 if (size.height > thumbheight)  {
                     
-                    if (!isDirSync(path.dirname(thumb))) {
-                        fs.mkdirSync(path.dirname(thumb));
-                        console.log('created dir ' + path.dirname(thumb));
-                    }
+                    fs.ensureDirSync(path.dirname(thumb));
                     
                     imageMagick(image)
                     .resize(Math.round(size.width*thumbheight/size.height), thumbheight)
