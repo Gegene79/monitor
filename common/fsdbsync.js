@@ -17,6 +17,18 @@ const THUMBS_L_PREFIX = "l_";
 const THUMBS_S_PREFIX = "s_";
 const cpunb = os.cpus().length;
 
+function isDirSync(aPath) {
+  try {
+    return fs.statSync(aPath).isDirectory();
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      return false;
+    } else {
+      throw e;
+    }
+  }
+}
+
 function getthumbpath(imagepath,thumbprefix){
     let dirpath = path.dirname(imagepath);
     let imgbasename = path.basename(imagepath);
@@ -40,7 +52,7 @@ function createthumb(image,thumbheight,thumbprefix)  {
 
     return new Promise(function(resolve, reject){
 
-        // 
+        // thumb path 
         var thumb = getthumbpath(image,thumbprefix);
 
         // obtain the size of an image
@@ -53,12 +65,11 @@ function createthumb(image,thumbheight,thumbprefix)  {
 
                 if (size.height > thumbheight)  {
                     
-                    if (!fs.existsSync(path.dirname(thumb))){
-                        console.log('creating dir ' + path.dirname(thumb));
+                    if (!isDirSync(path.dirname(thumb))) {
                         fs.mkdirSync(path.dirname(thumb));
                         console.log('created dir ' + path.dirname(thumb));
                     }
-
+                    
                     imageMagick(image)
                     .resize(Math.round(size.width*thumbheight/size.height), thumbheight)
                     .autoOrient()
