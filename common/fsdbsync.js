@@ -17,6 +17,18 @@ const THUMBS_L_PREFIX = "l_";
 const THUMBS_S_PREFIX = "s_";
 const cpunb = os.cpus().length;
 
+function isDirSync(aPath) {
+  try {
+    return fs.statSync(aPath).isDirectory();
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      return false;
+    } else {
+      throw e;
+    }
+  }
+}
+
 function getthumbpath(imagepath,thumbprefix){
     let dirpath = path.dirname(imagepath);
     let imgbasename = path.basename(imagepath);
@@ -40,7 +52,7 @@ function createthumb(image,thumbheight,thumbprefix)  {
 
     return new Promise(function(resolve, reject){
 
-        // 
+        // thumb path 
         var thumb = getthumbpath(image,thumbprefix);
 
         // obtain the size of an image
@@ -53,11 +65,11 @@ function createthumb(image,thumbheight,thumbprefix)  {
 
                 if (size.height > thumbheight)  {
                     
-                    if (!fs.existsSync(path.dirname(thumb))){
+                    if (!isDirSync(path.dirname(thumb))) {
                         fs.mkdirSync(path.dirname(thumb));
                         console.log('created dir ' + path.dirname(thumb));
                     }
-
+                    
                     imageMagick(image)
                     .resize(Math.round(size.width*thumbheight/size.height), thumbheight)
                     .autoOrient()
@@ -195,7 +207,8 @@ function scan() {
             }
 
             let thb = fsthumbs.findIndex(function(element,index,array){
-                return (getimagepath(element,THUMBS_L_PREFIX) == item);
+                let imgpath = getimagepath(element,THUMBS_L_PREFIX);
+                return ( imgpath == item);
             });
 
             if (thb < 0){
@@ -219,7 +232,8 @@ function scan() {
         fsthumbs.forEach(function(item){
 
             let thb = fsimages.findIndex(function(element,index,array){
-                return (getimagepath(element,THUMBS_L_PREFIX) == item);
+                let thbpath = getthumbpath(element,THUMBS_L_PREFIX);
+                return ( thbpath == item);
             });
 
             if (thb < 0){ // esta en los thumbnails pero no en las imagenes
@@ -227,7 +241,11 @@ function scan() {
             }
         });
 
-        console.log("*** Finished initial scan. Images to insert:"+imagestoinsert.length+", thumbs to create: "+thumbstocreate.length+" ***");
+        console.log("*** Finished initial scan. ***\n \
+        Images to insert: "+imagestoinsert.length+",\n \
+        Thumbs to create: "+thumbstocreate.length+",\n \
+        Images to delete: "+imagestodelete.length+",\n \
+        Thumbs to delete: "+thumbstodelete.length+".\n");
 
         Promise.map(imagestoinsert,function(image){
             return insertimage(image);
@@ -257,7 +275,7 @@ function scan() {
             console.log("*** Finished scan: "+Math.floor(ts/(60))+"m "+Math.round(ts%60)+"s. ***");
         })
         .catch(function(error){
-            console.log(new Date().toISOString+" - Error: "+error);
+            console.log("Error: "+error);
         });
 
     });

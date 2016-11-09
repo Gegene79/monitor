@@ -1,6 +1,8 @@
 "use strict";
 var MongoClient = require('mongodb').MongoClient;
 const DB_URL = process.env.DB_URL;
+const COLL_IMAGES = process.env.COLL_IMAGES;
+const COLL_METRICS = process.env.COLL_METRICS;
 var database;
 var metrics;
 var images;
@@ -16,8 +18,8 @@ exports.connect = function(callback){
     } else {
         console.log("Connected to database.");
         database = db;
-        images = db.collection('images');
-        metrics = db.collection('metrics');
+        images = db.collection(COLL_IMAGES);
+        metrics = db.collection(COLL_METRICS);
 
         exports.Images = images;
         exports.Metrics = metrics;
@@ -81,11 +83,11 @@ exports.insertImage = function(image){
         image.loaded_at = new Date();
         return images.insertOne(image)
         .then(function(result){
-            console.log(new Date().toISOString()+ " - inserted "+result.ops[0].filename);
+            console.log("inserted "+result.ops[0].filename);
             return Promise.resolve(result);
         })
         .catch(function(error){
-            console.log(new Date().toISOString()+ " - error in inserting image in db : "+error);
+            console.log("error in inserting image in db : "+error);
             return Promise.reject(error);
         });
     } else {
@@ -96,11 +98,11 @@ exports.insertImage = function(image){
 exports.deleteImage = function(id){
     return images.deleteOne({_id: id})
     .then(function(res){
-        console.log(new Date().toISOString()+ " - removed image from db: "+id);
+        console.log("removed image from db: "+id);
         return Promise.resolve(res);
     })
     .catch(function(error){
-        console.log(new Date().toISOString()+ " - error in removing image from db : "+error);
+        console.log("error in removing image from db : "+error);
         return Promise.reject(error);
     });
 };
@@ -108,11 +110,11 @@ exports.deleteImage = function(id){
 exports.deleteImages = function(filter){
     return images.deleteMany(filter)
     .then(function(res){
-        console.log(new Date().toISOString()+ " - removed "+res.deletedCount+" images from db.");
+        console.log("removed "+res.deletedCount+" images from db.");
         return Promise.resolve(res);
     })
     .catch(function(error){
-        console.log(new Date().toISOString()+ " - error in removing images from db : "+error);
+        console.log("error in removing images from db : "+error);
         return Promise.reject(error);
     });
 };
