@@ -2,6 +2,7 @@
 var Promise = require("bluebird");
 var express = require('express');
 var router = express.Router();
+var myDate = require('moment');
 var db = require('../../common/db');
 var ini = new Date();
 var end = new Date();
@@ -25,7 +26,7 @@ function transform(docs){
         docs.forEach(function(entry){
             if (!((entry.avg == null) || (entry.avg == NaN))){
 
-                var datapoint = { x: entry._id.timestamp, y: entry.avg };
+                var datapoint = { x: entry._id.timestamp, y: Math.round(entry.avg*10)/10 };
                 var exist_metric = result.find(function(a) {
                         return (a.key == entry._id.name);
                     });
@@ -52,15 +53,15 @@ function sendresult(res,result){
 
 router.use(function (req, res, next) {
 
-    ini = Date.now()-7*24*hour;     // default: since one week
-    end = Date.now();               // default: up to now
-    sampling = 5*min;               // default: values are averaged on 5 mins intervals
+    ini = myDate().subtract(7,'days').startOf('day').toDate();      // default: since one week
+    end = myDate().toDate();                                        // default: up to now
+    sampling = 5*min;                                               // default: values are averaged on 5 mins intervals
 
     if (req.query.ini){
-        ini = new Date(req.query.ini);
+        ini = myDate(req.query.ini).toDate();
     } 
     if (req.query.end){
-        end = new Date(req.query.end);
+        end = myDate(req.query.end).toDate();
     }
     if (req.query.sampling){
         sampling = req.query.sampling*min;
@@ -140,6 +141,7 @@ router.get('/:type/:name/current', function(req, res, next) {
 router.post('/:type/:name', function(req,res,next){
 
     var metric = req.body;
+    metric.value = Number(metric.value);
     metric.name = req.params.name;
     metric.type = req.params.type;
 

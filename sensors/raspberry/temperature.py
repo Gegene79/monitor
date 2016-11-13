@@ -29,7 +29,7 @@ import time;
 sensor = Adafruit_DHT.AM2302
 pin = 4
 name = 'salon'
-base_url = 'http://192.168.1.2/api/monitor'
+base_url = 'http://192.168.1.2/api/monitor/'
 
 # Try to grab a sensor reading.  Use the read_retry method which will retry up
 # to 15 times to get a sensor reading (waiting 2 seconds between each retry).
@@ -45,8 +45,8 @@ humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
 if humidity is not None and temperature is not None:
     	localtime = time.localtime(time.time())
 	str_time = time.strftime('%Y-%m-%dT%H:%M:%SZ')
-	r = requests.post(base_url + 'temperature/'+name, \
-	data = {'date':str_time,'type':'temperature','value' : temperature})
+	r = requests.post(base_url+'temperature/'+name, \
+		data = {'date':str_time,'type':'temperature','value' : temperature})
 	s = requests.post(base_url + 'humidity/'+name, \
         data = {'date':str_time,'value' : humidity})
 else:
