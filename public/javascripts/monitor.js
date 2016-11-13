@@ -20,7 +20,7 @@ $(function() {
         $.getJSON( API_BASEURL+"/temperature/current", function( data ) {
             $.each( data, function(key,val) {
                 var id = val._id;
-                var temp= parseInt(val.value);
+                var temp= parseFloat(val.value);
                 var ts = new Date(val.timestamp);
                 
                 if ($("#ligne1 #"+id).length){ // if the box exists, update data only.
