@@ -5,3 +5,19 @@ body {
   padding: 40px 15px;
   text-align: center;
 }
+
+text {
+    font: 12px sans-serif;
+}
+svg {
+    display: block;
+    height:100%;
+}
+#chart_week{
+    height: 27em;
+    width: 100%;
+}
+#chart_6hours{
+    height: 13em;
+
+}

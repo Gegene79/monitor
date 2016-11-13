@@ -133,7 +133,7 @@ exports.getMetrics = function(datemin,datemax,sampling){
     return metrics.aggregate(
         [
          { $match : {
-                    timestamp: {$gte: new Date(datemin), $lte: new Date(datemax)} 
+                    timestamp: {$gte: datemin, $lte: datemax} 
                 }
         },   
         { "$group": {
@@ -172,7 +172,7 @@ exports.getMetricsByType = function(type,datemin,datemax,sampling){
         [
          { $match : {
                     type: type,
-                    timestamp: {$gte: new Date(datemin), $lte: new Date(datemax)} 
+                    timestamp: {$gte: datemin, $lte: datemax} 
                 }
         },   
         { "$group": {
@@ -212,7 +212,7 @@ exports.getMetricsByTypeAndName = function(type,name,datemin,datemax,sampling){
          { $match : {
                     name: name,
                     type: type,
-                    timestamp: {$gte: new Date(datemin), $lte: new Date(datemax)} 
+                    timestamp: {$gte: datemin, $lte: datemax} 
                 }
         },   
         { "$group": {
