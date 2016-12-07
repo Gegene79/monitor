@@ -34,20 +34,30 @@ router.get('/scan', function(req, res, next) {
 });
 
 router.get('/browseimages', function(req, res, next) {
+    
+    let query = {};
+    
+    db.browseImages(query, skip, limit)
+    .then(function(result){
 
-    db.browseImages(skip,limit)
-    .then(function(results){
-
-        var response = {
-            imgcount: results.length,
-            images: results
-        };
-        sendresult(res,response);
+        sendresult(res,result);
     })
     .catch(function(error){
         next(error);
     });
 });
 
+router.get('/searchimages', function(req, res, next) {
+    
+    let query = req.query.q;
+
+    db.searchImages(query, skip, limit)
+    .then(function(result){
+        sendresult(res,result);
+    })
+    .catch(function(error){
+        next(error);
+    });
+});
 
 module.exports = router;

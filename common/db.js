@@ -1,8 +1,7 @@
 "use strict";
 var MongoClient = require('mongodb').MongoClient;
-const DB_URL = process.env.DB_URL;
-const COLL_IMAGES = process.env.COLL_IMAGES;
-const COLL_METRICS = process.env.COLL_METRICS;
+var Promise = require("bluebird");
+var cst = require('./constants');
 var database;
 var metrics;
 var images;
@@ -10,7 +9,7 @@ var images;
 
 exports.connect = function(callback){
     
-    MongoClient.connect(DB_URL,{}, function(err, db) {
+    MongoClient.connect(cst.DB_URL,{}, function(err, db) {
     
     if (err) {
       console.error('Failed to connect to mongo - retrying in 5 sec', err);
@@ -18,8 +17,8 @@ exports.connect = function(callback){
     } else {
         console.log("Connected to database.");
         database = db;
-        images = db.collection(COLL_IMAGES);
-        metrics = db.collection(COLL_METRICS);
+        images = db.collection(cst.COLL_IMAGES);
+        metrics = db.collection(cst.COLL_METRICS);
 
         exports.Images = images;
         exports.Metrics = metrics;
@@ -32,6 +31,7 @@ exports.connect = function(callback){
             
         db.on('close', function(str) {
                 console.log("DB disconnected: "+str);
+                setTimeout(exports.connect, 5000);
         });
 
         db.once('open', function() {
@@ -46,35 +46,78 @@ exports.connect = function(callback){
 
 /**** Gallery Section ****/
 
-
 exports.listAllImages = function(){
     // empty filter {}, returns path, ctime and mtime
      return images.find({},{'path':1,'ctime':1, 'mtime':1}).toArray();
 };
 
-exports.browseImages = function(skip,limit){
+function executeQuery(query,fields,sort,skip,limit){
+
+    var cursor = images.find(query,fields).limit(limit).skip(skip).sort(sort);
+    var result ={};
+
+    return cursor.count()
+    .then(function(count){
+        result.imgcount= count;
+        return cursor.toArray();
+    })
+    .then(function(results){
+        result.images = results;
+        return Promise.resolve(result);
+    })
+    .catch(function(error){
+        console.error(error);
+        return Promise.reject(error);
+    });
+}
+
+
+exports.browseImages = function(query,skip,limit){
 
     var query = {};
 
-    var options = {
-        'limit': limit,
-        'skip': skip,
-        'sort': [['created_at','desc']]
+    var sort = {
+        created_at: -1
     };
 
     var fields = {
-        '_id':1,
-        'path':1,
-        'largethumb': 1,
-        'smallthumb': 1,
-        'filename':1,
-        'dir':1,
-        'created_at':1,
-        'loaded_at':1
+        _id:1,
+        path:1,
+        largethumb: 1,
+        smallthumb: 1,
+        filename:1,
+        dir:1,
+        created_at:1,
+        loaded_at:1
     };
 
-    return images.find(query,fields,options).toArray();
+    return executeQuery(query,fields,sort,skip,limit);
+}
 
+exports.searchImages = function(searchterm,skip,limit){
+
+    var query = { 
+        $text: { $search: searchterm, $language: "es" } 
+    };
+
+    var sort = {
+        score: { $meta: "textScore" } ,
+        created_at: -1
+    };
+
+    var fields = {
+        _id:1,
+        path:1,
+        largethumb: 1,
+        smallthumb: 1,
+        filename:1,
+        dir:1,
+        created_at:1,
+        loaded_at:1,
+        score: { $meta: "textScore" }
+    };
+
+    return executeQuery(query,fields,sort,skip,limit);
 }
 
 
