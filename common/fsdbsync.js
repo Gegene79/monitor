@@ -5,29 +5,27 @@ var path = Promise.promisifyAll(require("path"));
 var fs = Promise.promisifyAll(require("fs-extra"));
 var gm = Promise.promisifyAll(require("gm"));
 var moment = require("moment");
-var os = require('os');
 var imageMagick = gm.subClass({ imageMagick: true });
 var db = require("./db");
 var ExifImage = require('exif').ExifImage;
-const IMAGES_DIR = process.env.IMAGES_DIR;
-const THUMBS_DIR = process.env.THUMBS_DIR;
+var cst = require("./constants");
 const THUMBS_L_HEIGHT = 1080;
 const THUMBS_S_HEIGHT = 540;
 const THUMBS_L_PREFIX = "l_";
 const THUMBS_S_PREFIX = "s_";
-const cpunb = os.cpus().length;
+
 
 
 function getthumbpath(imagepath,thumbprefix){
     let dirpath = path.dirname(imagepath);
     let imgbasename = path.basename(imagepath);
-    return THUMBS_DIR+dirpath.substring(IMAGES_DIR.length)+"/"+thumbprefix+imgbasename;
+    return cst.THUMBS_DIR+dirpath.substring(cst.IMAGES_DIR.length)+"/"+thumbprefix+imgbasename;
 };
 
 function getimagepath(thumbpath,thumbprefix){
     let dirpath = path.dirname(thumbpath);
     let imgbasename = path.basename(thumbpath).substring(thumbprefix.length);
-    return IMAGES_DIR+dirpath.substring(THUMBS_DIR.length)+"/"+imgbasename;
+    return cst.IMAGES_DIR+dirpath.substring(cst.THUMBS_DIR.length)+"/"+imgbasename;
 };
 
 function getsibling(thumbpath,sourceprefix,targetprefix){
@@ -84,7 +82,7 @@ function createthumb(image,thumbheight,thumbprefix)  {
 
 function deletefile(thumb){
 
-    if (thumb.startsWith(THUMBS_DIR)){
+    if (thumb.startsWith(cst.THUMBS_DIR)){
         return fs.unlinkAsync(thumb)
         .then(function(result){
             console.log("deleted "+thumb);
@@ -174,8 +172,8 @@ function insertimage(path){
 
 function scan() {
     var started_at = new Date();
-    var imagespattern = IMAGES_DIR+"/**/*.jpg";
-    var thumbspattern = THUMBS_DIR+"/**/"+THUMBS_L_PREFIX+"*.jpg";
+    var imagespattern = cst.IMAGES_DIR+"/**/*.jpg";
+    var thumbspattern = cst.THUMBS_DIR+"/**/"+THUMBS_L_PREFIX+"*.jpg";
 
     console.log("*** Starting scan. ***");
 
@@ -243,20 +241,20 @@ function scan() {
 
         Promise.map(imagestoinsert,function(image){
             return insertimage(image);
-        }, {concurrency: cpunb*2})
+        }, {concurrency: cst.CPUNB*2})
         .then(function(){
             console.log("*** Inserted all images, now creating thumbs. ***");
             return Promise.map(thumbstocreate, function(image){
                 return createthumb(image,THUMBS_L_HEIGHT,THUMBS_L_PREFIX)
                 .then(function(r){return createthumb(image,THUMBS_S_HEIGHT,THUMBS_S_PREFIX)});
-            },{concurrency: cpunb});
+            },{concurrency: cst.CPUNB});
         })
         .then(function(){
             console.log("*** Created all thumbs, now deleting missing thumbnails. ***");
             return Promise.map(thumbstodelete, function(thumb){
                 return deletefile(thumb)
                 .then(function(r){return deletefile(getsibling(thumb,THUMBS_L_PREFIX,THUMBS_S_PREFIX))});
-            },{concurrency: cpunb*2})
+            },{concurrency: cst.CPUNB*2})
         })
         .then(function(){
             console.log("*** Deleted all thumbs, now removing missing images from DB. ***");

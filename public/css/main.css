@@ -9,7 +9,7 @@ body {
 text {
     font: 12px sans-serif;
 }
-svg {
+.svg {
     display: block;
     height:100%;
 }
@@ -18,10 +18,12 @@ svg {
     width: 100%;
 }
 #chart_6hours{
-    height: 13em;
-
+    /*height: 13em;*/
+    height: 100%;
 }
 #title{
     font-family: 'Dancing Script', cursive;
     font-size: 2em;
 }
+
+/* parte photos */

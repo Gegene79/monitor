@@ -6,6 +6,7 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var routes = require('./routes/index');
+var cst = require('./common/constants');
 var db = require('./common/db');
 var filesync = require('./common/fsdbsync');
 var monitor = require('./routes/api/monitor');
@@ -19,7 +20,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
 // uncomment after placing your favicon in /public
-//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
+app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -31,7 +32,7 @@ app.use('*/api',proxymonitor);
 app.use('*/api/monitor', monitor);
 app.use('*/api/gallery', gallery);
 app.use('/monitor', express.static('public'));
-
+app.use(cst.THUMBS_DIR, express.static(cst.THUMBS_DIR));
 
 // Connect DB
 db.connect(function(){
@@ -55,7 +56,7 @@ app.use(function(req, res, next) {
 app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   console.error(err);
-  res.contentType(req.get('content-type'));
+  //res.contentType(req.get('content-type'));
   res.json(err);
 });
 
