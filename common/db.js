@@ -31,6 +31,7 @@ exports.connect = function(callback){
             
         db.on('close', function(str) {
                 console.log("DB disconnected: "+str);
+                setTimeout(exports.connect, 5000);
         });
 
         db.once('open', function() {
