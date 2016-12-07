@@ -3,7 +3,7 @@ const API_BASEURL = "/node/api";
 const TIMER_G2H = 60*1000;
 const TIMER_CURRENT = 60*1000;
 const TIMER_GWEEK = 5*60*1000;
-const IMG_PER_PAGE = 2;
+const IMG_PER_PAGE = 50;
 var timerGraph2hours;
 var timerCurrentVal;
 var timerGraphWeek;
@@ -194,6 +194,7 @@ function enablephotos(){
     $('#div-search-bar').removeClass('hidden');
     $('#div-text-results').removeClass('hidden');
     $('#div-nav-pg-btn').removeClass('hidden');
+    $('#scan-btn').removeClass('hidden');
 
     $('#monitor').parent().removeClass('active');
     $('#photos').parent().addClass('active');
@@ -226,6 +227,7 @@ function enablemonitor(){
     $('#div-search-bar').addClass('hidden');
     $('#div-text-results').addClass('hidden');
     $('#div-nav-pg-btn').addClass('hidden');
+    $('#scan-btn').addClass('hidden');
 
     $('#container-monitor').removeClass('hidden');
     $('#monitor').parent().addClass('active');
@@ -282,6 +284,15 @@ function prevpage(){
         gotopage(currentpage);
     }
 };
+
+function scan(){
+    $('#scan-btn').addClass('disabled');
+    let url = API_BASEURL + "/gallery/scan";
+    $.getJSON( url, currentquery)
+    .done(function( data ) {
+        $('#scan-btn').removeClass('disabled');
+    });
+}
 
 function populateimages(imgarray,totalcount){
 

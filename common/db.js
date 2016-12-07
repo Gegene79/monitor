@@ -46,33 +46,14 @@ exports.connect = function(callback){
 
 /**** Gallery Section ****/
 
-
 exports.listAllImages = function(){
     // empty filter {}, returns path, ctime and mtime
      return images.find({},{'path':1,'ctime':1, 'mtime':1}).toArray();
 };
 
-exports.browseImages = function(query,skip,limit){
+function executeQuery(query,fields,sort,skip,limit){
 
-
-    var options = {
-        'limit': limit,
-        'skip': skip,
-        'sort': [['created_at','desc']]
-    };
-
-    var fields = {
-        '_id':1,
-        'path':1,
-        'largethumb': 1,
-        'smallthumb': 1,
-        'filename':1,
-        'dir':1,
-        'created_at':1,
-        'loaded_at':1
-    };
-
-    var cursor = images.find(query,fields,options);
+    var cursor = images.find(query,fields).limit(limit).skip(skip).sort(sort);
     var result ={};
 
     return cursor.count()
@@ -88,6 +69,29 @@ exports.browseImages = function(query,skip,limit){
         console.error(error);
         return Promise.reject(error);
     });
+}
+
+
+exports.browseImages = function(query,skip,limit){
+
+    var query = {};
+
+    var sort = {
+        created_at: -1
+    };
+
+    var fields = {
+        _id:1,
+        path:1,
+        largethumb: 1,
+        smallthumb: 1,
+        filename:1,
+        dir:1,
+        created_at:1,
+        loaded_at:1
+    };
+
+    return executeQuery(query,fields,sort,skip,limit);
 }
 
 exports.searchImages = function(searchterm,skip,limit){
@@ -113,22 +117,7 @@ exports.searchImages = function(searchterm,skip,limit){
         score: { $meta: "textScore" }
     };
 
-    var cursor = images.find(query,fields).limit(limit).skip(skip).sort(sort);
-    var result ={};
-
-    return cursor.count()
-    .then(function(count){
-        result.imgcount= count;
-        return cursor.toArray();
-    })
-    .then(function(results){
-        result.images = results;
-        return Promise.resolve(result);
-    })
-    .catch(function(error){
-        console.error(error);
-        return Promise.reject(error);
-    });
+    return executeQuery(query,fields,sort,skip,limit);
 }
 
 

@@ -124,7 +124,6 @@ function enrichimage(imgdetails){
     let stats = imgdetails[1];
     let exifdata = imgdetails[2];
     
-
     if (!(stats.isFile())){ 
         console.log(imgpath + " is not a file");
         return Promise.resolve(null);
@@ -132,11 +131,13 @@ function enrichimage(imgdetails){
     // moment(exifdata.exif.CreateDate,['YYYY:MM:DD HH:mm:ss','YYYY/MM/DD HH:mm:ss');
     let thumb = getthumbpath(imgpath,THUMBS_L_PREFIX);
     let sthumb = getsibling(thumb,THUMBS_L_PREFIX,THUMBS_S_PREFIX);
+    let created_at = undefined;
 
     var image = {
             path : imgpath,
             filename : path.basename(imgpath),
             dir : path.dirname(imgpath),
+            rel_dir: path.dirname(imgpath).substring(cst.IMAGES_DIR.length),
             extension : path.extname(imgpath),
             largethumb: thumb,
             smallthumb: sthumb,
@@ -144,15 +145,44 @@ function enrichimage(imgdetails){
             ctime : stats.ctime,
             birthtime : stats.birthtime
     };
-
+    
     if (exifdata!=null){
-        let create_date = moment(exifdata.exif.CreateDate,'YYYY:MM:DD HH:mm:ss').toDate();
-        image.created_at=create_date;
-        image.info=exifdata.image;
-        image.gps=exifdata.gps;
-        image.exif=exifdata.exif;
+        if (exifdata.exif.CreateDate){
+            created_at = moment(exifdata.exif.CreateDate,'YYYY:MM:DD HH:mm:ss').toDate();
+        } else if (exifdata.image.ModifyDate) {
+            created_at = moment(exifdata.image.ModifyDate,'YYYY:MM:DD HH.mm.ss').toDate();
+        }
+        
+        image.info = exifdata.image;
+        image.gps = exifdata.gps;
+        image.exif = exifdata.exif;
     }
-
+    if (!(created_at)) {
+        let str_date = image.filename.substring(4,12);
+        if (moment(str_date,'YYYYMMDD', true).isValid()){
+            created_at = moment(str_date,'YYYYMMDD', true).toDate();
+        } else {
+            str_date = image.filename.substring(0,15);
+            if (moment(str_date,'YYYYMMDD_HHmmss', true).isValid()){
+                created_at = moment(str_date,'YYYYMMDD', true).toDate();
+            }
+        }
+    }
+    if (!(created_at)) {
+        if (image.ctime < image.mtime){
+            created_at = image.ctime;
+        } else {
+            created_at = image.mtime;
+        }
+    }
+    if (!(created_at)){
+        created_at = new Date(0);
+    }
+    image.created_at = created_at;
+    let m = moment(created_at);
+    m.locale('es');
+    let strctime = m.format('DD MMMM YYYY');
+    image.str_created_at = strctime;
     return Promise.resolve(image);
 }
 
