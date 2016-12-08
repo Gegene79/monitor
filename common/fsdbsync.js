@@ -9,12 +9,17 @@ var imageMagick = gm.subClass({ imageMagick: true });
 var db = require("./db");
 var ExifImage = require('exif').ExifImage;
 var cst = require("./constants");
+var memory = process.memoryUsage();
 const THUMBS_L_HEIGHT = 1080;
 const THUMBS_S_HEIGHT = 540;
 const THUMBS_L_PREFIX = "l_";
 const THUMBS_S_PREFIX = "s_";
 
 
+function logmem(str){
+    memory = process.memoryUsage();
+    console.log(str+'\nTotal: '+(memory.heapTotal/(1024*1024)).toFixed(2)+'\nUsed: '+(memory.heapUsed/(1024*1024)).toFixed(2));
+};
 
 function getthumbpath(imagepath,thumbprefix){
     let dirpath = path.dirname(imagepath);
@@ -36,6 +41,8 @@ function getsibling(thumbpath,sourceprefix,targetprefix){
 
 
 function createthumb(image,thumbheight,thumbprefix)  {
+    
+    logmem('debut '+image);
 
     return new Promise(function(resolve, reject){
 
@@ -63,6 +70,7 @@ function createthumb(image,thumbheight,thumbprefix)  {
                             return reject(err);
                         } else {
                             console.log('created thumb '+thumb);
+                            logmem('fin '+image);
                             return resolve(thumb);
                         }
                     });
@@ -98,31 +106,36 @@ function deletefile(thumb){
 
 
 function getexif(path){
-
+    logmem('exif debut '+path);
     return new Promise(function(resolve, reject) {
         try {
             new ExifImage({ image : path }, function (error, exifData) {
                 if (error){
                     console.log('Error in getexif for '+path+': '+ error.message);
-                    resolve(null);
+                    logmem('exif fin '+path);
+                    return resolve(null);
                 } else {
-                    resolve(exifData);
+                    logmem('exif fin '+path);
+                    return resolve(exifData);
                 }
             });
         } catch (error) {
             console.log('getexif error for '+path+': '+ error.message);
-            resolve(null);
+            logmem('exif fin '+path);
+            return resolve(null);
         }
     });
 };
 
 function enrichimage(imgdetails){
-
+    
     if (!(imgdetails) || imgdetails.length==0) {return Promise.resolve(null);}
 
     let imgpath = imgdetails[0];
     let stats = imgdetails[1];
     let exifdata = imgdetails[2];
+
+    logmem('enrich debut '+imgpath);
     
     if (!(stats.isFile())){ 
         console.log(imgpath + " is not a file");
@@ -183,6 +196,9 @@ function enrichimage(imgdetails){
     m.locale('es');
     let strctime = m.format('DD MMMM YYYY');
     image.str_created_at = strctime;
+
+    logmem('enrich fin '+imgpath);
+    
     return Promise.resolve(image);
 }
 
@@ -276,7 +292,8 @@ function scan() {
             console.log("*** Inserted all images, now creating thumbs. ***");
             return Promise.map(thumbstocreate, function(image){
                 return createthumb(image,THUMBS_L_HEIGHT,THUMBS_L_PREFIX)
-                .then(function(r){return createthumb(image,THUMBS_S_HEIGHT,THUMBS_S_PREFIX)});
+                .then(function(r){
+                    return createthumb(image,THUMBS_S_HEIGHT,THUMBS_S_PREFIX)});
             },{concurrency: cst.CPUNB});
         })
         .then(function(){
