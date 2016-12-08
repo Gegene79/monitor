@@ -71,16 +71,16 @@ function createthumb(image,thumbheight,thumbprefix)  {
                         } else {
                             console.log('created thumb '+thumb);
                             logmem('fin '+image);
-                            return Promise.resolve(thumb);
+                            return resolve(thumb);
                         }
                     });
                 } else {
                     fs.copyAsync(image,thumb)
                     .then(function(result){
                         console.log('copied image '+ image+' as thumb '+thumb);
-                        return Promise.resolve(thumb);
+                        return resolve(thumb);
                     }).catch(function(error){
-                        return Promise.reject(error);
+                        return reject(error);
                     });
                 }
             }
@@ -113,16 +113,16 @@ function getexif(path){
                 if (error){
                     console.log('Error in getexif for '+path+': '+ error.message);
                     logmem('exif fin '+path);
-                    return Promise.resolve(null);
+                    return resolve(null);
                 } else {
                     logmem('exif fin '+path);
-                    return Promise.resolve(exifData);
+                    return resolve(exifData);
                 }
             });
         } catch (error) {
             console.log('getexif error for '+path+': '+ error.message);
             logmem('exif fin '+path);
-            return Promise.resolve(null);
+            return resolve(null);
         }
     });
 };
