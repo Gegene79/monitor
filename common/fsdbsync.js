@@ -14,7 +14,7 @@ const THUMBS_L_HEIGHT = 1080;
 const THUMBS_S_HEIGHT = 540;
 const THUMBS_L_PREFIX = "l_";
 const THUMBS_S_PREFIX = "s_";
-
+const factor = cst.CPU_SCAN_FACTOR;
 
 function logmem(str){
     memory = process.memoryUsage();
@@ -287,21 +287,21 @@ function scan() {
 
         Promise.map(imagestoinsert,function(image){
             return insertimage(image);
-        }, {concurrency: cst.CPUNB*2})
+        }, {concurrency: cst.CPUNB*cst.CPU_SCAN_FACTOR})
         .then(function(){
             console.log("*** Inserted all images, now creating thumbs. ***");
             return Promise.map(thumbstocreate, function(image){
                 return createthumb(image,THUMBS_L_HEIGHT,THUMBS_L_PREFIX)
                 .then(function(r){
                     return createthumb(image,THUMBS_S_HEIGHT,THUMBS_S_PREFIX)});
-            },{concurrency: cst.CPUNB});
+            },{concurrency: cst.CPUNB*cst.CPU_SCAN_FACTOR});
         })
         .then(function(){
             console.log("*** Created all thumbs, now deleting missing thumbnails. ***");
             return Promise.map(thumbstodelete, function(thumb){
                 return deletefile(thumb)
                 .then(function(r){return deletefile(getsibling(thumb,THUMBS_L_PREFIX,THUMBS_S_PREFIX))});
-            },{concurrency: cst.CPUNB*2})
+            },{concurrency: cst.CPUNB*cst.CPU_SCAN_FACTOR})
         })
         .then(function(){
             console.log("*** Deleted all thumbs, now removing missing images from DB. ***");
