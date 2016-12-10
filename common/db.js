@@ -53,7 +53,7 @@ exports.listAllImages = function(){
 
 function executeQuery(query,fields,sort,skip,limit){
 
-    var cursor = images.find(query,fields).limit(limit).skip(skip).sort(sort);
+    var cursor = images.find(query,fields).sort(sort).limit(limit).skip(skip);
     var result ={};
 
     return cursor.count()

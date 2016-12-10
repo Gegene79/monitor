@@ -298,26 +298,22 @@ function populateimages(imgarray,totalcount){
 
     $('#inner-container-photos').empty();
 
-    let year = 0;
-    let month = 0;
+    var yearmonth = "";
     let line = 0;
     $.each( imgarray, function( i, item ) {
     
-        let mmt = moment(item.created_at);
-        let itemyear = mmt.year();
-        let itemmonth = mmt.month();
-
-        if( itemyear!=year && itemmonth!=month ){
+        let m = moment(item.created_at);
+        m.locale('es');
+        let itemyearmonth = m.format('MMMM YYYY');
+        
+        if (itemyearmonth != yearmonth) {
             if (line!=0){
                 $('</div>').appendTo('#line'+line);
             }
             line++;
-            year = itemyear;
-            month = itemmonth;
-            let m = moment(item.created_at);
-            m.locale('es');
+            yearmonth = itemyearmonth;
             $('<div id="line'+line+'" class="row">').appendTo('#inner-container-photos');
-            $('<div class="page-header"><h3>'+m.format('MMMM YYYY')+'</h3></div>').appendTo('#line'+line);
+            $('<div class="page-header"><h3>'+itemyearmonth+'</h3></div>').appendTo('#line'+line);
         }
         $('<div class="col-xs-6 col-md-4"> <a href="#" class="thumbnail"> \
         <img src="'+item.smallthumb+'" /> </a></div>').appendTo('#line'+line);
@@ -375,7 +371,7 @@ function updatenav(pgnumber, currentpg){
 
         }
     }
-    
+    $('#photo-pagination').removeClass('hidden');
     $('#pg-nb-btn-'+currentpg).addClass('active');
     
 };
