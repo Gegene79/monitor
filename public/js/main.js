@@ -307,7 +307,6 @@ function populateimages(imgarray,totalcount){
         let itemyearmonth = m.format('MMMM YYYY');
         
         if (itemyearmonth != yearmonth) {
-            console.log('diff');
             if (line!=0){
                 $('</div>').appendTo('#line'+line);
             }
@@ -372,7 +371,7 @@ function updatenav(pgnumber, currentpg){
 
         }
     }
-    
+    $('#photo-pagination').removeClass('hidden');
     $('#pg-nb-btn-'+currentpg).addClass('active');
     
 };
