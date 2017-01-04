@@ -28,6 +28,7 @@ $(function() {
             browseimages();
         }
     });
+
     /*
         get current temperatures
     */
@@ -315,7 +316,7 @@ function populateimages(imgarray,totalcount){
             $('<div id="line'+line+'" class="row">').appendTo('#inner-container-photos');
             $('<div class="page-header"><h3>'+itemyearmonth+'</h3></div>').appendTo('#line'+line);
         }
-        $('<div class="col-xs-6 col-md-4"> <a href="#" class="thumbnail"> \
+        $('<div class="col-xs-6 col-md-4"> <a href="'+item.largethumb+'" class="thumbnail" title="'+item.filename+'" data-gallery> \
         <img src="'+item.smallthumb+'" /> </a></div>').appendTo('#line'+line);
 
     });
@@ -377,3 +378,13 @@ function updatenav(pgnumber, currentpg){
 };
 
 
+function thumbnailclick(img){
+
+    $('#container-photos').addClass('hidden');
+    $('#nav-menu').addClass('hidden');
+    
+    $('#container-slider').removeClass('hidden');
+    
+    
+
+};
