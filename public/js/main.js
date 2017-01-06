@@ -29,6 +29,12 @@ $(function() {
         }
     });
 
+    $('#blueimp-gallery').on('slide', function (event, index, slide) {
+        // Gallery slide event handler
+        $(this).children('.description').text($('#inner-container-photos a').eq(index).data('description'));
+    });
+
+
     /*
         get current temperatures
     */
@@ -306,7 +312,7 @@ function populateimages(imgarray,totalcount){
         let m = moment(item.created_at);
         m.locale('es');
         let itemyearmonth = m.format('MMMM YYYY');
-        
+        let created_at = m.format('DD MMM YYYY HH:mm:ss');
         if (itemyearmonth != yearmonth) {
             if (line!=0){
                 $('</div>').appendTo('#line'+line);
@@ -316,8 +322,10 @@ function populateimages(imgarray,totalcount){
             $('<div id="line'+line+'" class="row">').appendTo('#inner-container-photos');
             $('<div class="page-header"><h3>'+itemyearmonth+'</h3></div>').appendTo('#line'+line);
         }
-        $('<div class="col-xs-6 col-md-4"> <a href="'+item.largethumb+'" class="thumbnail" title="'+item.filename+'" data-gallery> \
-        <img src="'+item.smallthumb+'" /> </a></div>').appendTo('#line'+line);
+        let score = (item.score)? ' - score: '+item.score.toFixed(2) : '';
+        $('<div class="col-xs-6 col-md-4"> <a href="'+item.largethumb+
+        '" class="thumbnail" title="'+item.filename+'" data-description="'+created_at+'" data-gallery> \
+        <img src="'+item.smallthumb+'" />'+created_at+score+'</a></div>').appendTo('#line'+line);
 
     });
     $('</div>').appendTo('#line'+line);
