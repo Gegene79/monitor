@@ -27,3 +27,14 @@ text {
 }
 
 /* parte photos */
+
+.blueimp-gallery > .description {
+  position: absolute;
+  bottom: 15px;
+  left: 15px;
+  color: #aaa;
+  display: none;
+}
+.blueimp-gallery-controls > .description {
+  display: block;
+}

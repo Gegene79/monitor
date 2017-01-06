@@ -17,6 +17,8 @@
         <link rel="stylesheet"  href="./css/nv.d3.min.css" type="text/css">
          <!-- Google fonts -->
         <link href="https://fonts.googleapis.com/css?family=Dancing+Script" rel="stylesheet">
+        <!-- blueimp -->
+        <link rel="stylesheet" href="./css/blueimp-gallery.min.css">
         <!-- Custom styles for this template -->
         <link rel="stylesheet" href="./css/main.css">
 
@@ -29,6 +31,8 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.2/d3.min.js" charset="utf-8"></script>
         <!-- nvd3 library -->
         <script src="./js/nv.d3.min.js"></script>
+        <!-- blueimp library -->
+        <script src="./js/jquery.blueimp-gallery.min.js"></script>
         <!-- custom js -->
         <script src="./js/moment-with-locales.min.js"></script>
         <script src="./js/main.js"></script>
@@ -36,7 +40,7 @@
 
   <body>
 
-    <nav class="navbar navbar-inverse navbar-fixed-top">
+    <nav class="navbar navbar-inverse navbar-fixed-top" id="nav-menu">
       <div class="container">
         <div class="navbar-header">
           <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
@@ -124,10 +128,19 @@
                 </li>
             </ul>
         </nav>
+    
+        <!-- The Gallery as lightbox dialog, should be a child element of the document body -->
+        <div id="blueimp-gallery" class="blueimp-gallery" data-stretch-images="contain">
+            <div class="slides"></div>
+            <h3 class="title"></h3>
+            <p class="description"></p>
+            <a class="prev">‹</a>
+            <a class="next">›</a>
+            <a class="close">×</a>
+            <a class="play-pause"></a>
+            <!-- ol class="indicator"></ol -->
+        </div>
     </div>
-       
-</div><!-- /.container -->
-
 </body>
 </html>
 
