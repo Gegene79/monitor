@@ -21,6 +21,10 @@ text {
     height: 13em;
     height: 100%;
 }
+#chart_baseline{
+    height: 27em;
+    width: 100%;
+}
 #title{
     font-family: 'Dancing Script', cursive;
     font-size: 2em;

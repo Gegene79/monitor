@@ -314,3 +314,68 @@ exports.getCurrentValues = function(){
         { $sort: {_id: 1}}
         ]).toArray();
 };
+
+exports.getMetricPattern = function(type, name, datemin, datemax, hourmin, hourmax){
+
+    return metrics.aggregate([
+        { $match : {   name: name,
+                        type: type,
+                        timestamp: {$gte: datemin, $lte: datemax},
+                    }
+        },
+        { $project : {  name: "$name",
+                        type:  "$type",
+                        timestamp: "$timestamp",
+                        value: "$value",
+                        hour : {"$hour": "$timestamp"}, 
+                        min :  {"$minute": "$timestamp"} 
+                    }
+        },
+        { $match : {  
+                        hour: {$gte: hourmin, $lte: hourmax},
+                    }
+        },
+        { $group: {
+                _id: {
+                    timestamp: {
+                        "$add": [
+                            { "$subtract": [
+                                { "$subtract": [ "$timestamp", new Date(0) ] },
+                                { "$mod": [ 
+                                    { "$subtract": [ "$timestamp", new Date(0) ] },
+                                        1000 * 60 * 5
+                                    ]}
+                                ]},
+                            new Date(0)
+                            ]
+                        },
+                        name:"$name", type:"$type"
+                },
+                "count": { "$sum": 1 },
+                "last": { "$last": "$value"},
+                "avg": { "$avg": "$value"},
+                "min": { "$min": "$value"},
+                "max": { "$max": "$value"},
+                "stdev": { "$stdDevPop": "$value"}
+            }
+        },
+        { $group: {
+                    _id: {      
+                                hour: {"$hour":"$_id.timestamp"},
+                                min:  {"$minute":"$_id.timestamp"},
+                                name: "$_id.name", 
+                                type: "$_id.type"
+                            },
+                    "total": { "$sum": "$count" },
+                    "groups": { "$sum": 1},
+                    "avg": { "$avg": "$avg"},
+                    "min": { "$min": "$avg"},
+                    "max": { "$max": "$avg"},
+                    "stdev": { "$stdDevPop": "$avg"}
+                    }
+        },
+        { 
+            $sort: { '_id.type': 1, '_id.name': 1, '_id.hour': 1,  '_id.min': 1}
+        }
+        ]).toArray();
+};

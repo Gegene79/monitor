@@ -7,6 +7,7 @@ const IMG_PER_PAGE = 50;
 var timerGraph2hours;
 var timerCurrentVal;
 var timerGraphWeek;
+//var timerBsGraph;
 var currentpage = 1;
 var currentpagenb = 0;
 var currenturl = "";
@@ -81,13 +82,13 @@ $(function() {
     chartWeek.xAxis
         //.staggerLabels(true)
         .tickFormat(function (d) {
-        return d3.time.format('%a %d %H:%M')(new Date(d));
+        return d3.time.format('%a %d')(new Date(d));
     });
     
     chartWeek.x2Axis
         //.staggerLabels(true)
         .tickFormat(function (d) {
-        return d3.time.format('%d/%m %H:%M')(new Date(d));
+        return d3.time.format('%d/%m')(new Date(d));
     });
 
     chartWeek.yTickFormat(d3.format(',.1f'));
@@ -185,7 +186,82 @@ $(function() {
 
     nv.addGraph(loadWeekChart);
 
+    /*
+        Baseline graph
+    */
+    
+    /*
+    var bsgraph = nv.models.lineChart();
 
+    // mapear x e y hacia las columnas
+    bsgraph.x(function(d) {
+        var b = new Date(d.x).getTime();
+        return b;
+    });
+    //chart.y(function(d) { return d.value; });
+    // formato ejes
+    bsgraph.xAxis
+        //.staggerLabels(true)
+        .tickFormat(function (d) {
+        return d3.time.format('%H:%M')(new Date(d));
+    });
+    
+    
+    bsgraph.yTickFormat(d3.format(',.1f'));
+    bsgraph.yAxis.axisLabel("ºC");
+    
+    bsgraph.interpolate("basis");
+
+    function loadBsGraph(){
+
+        d3.json(API_BASEURL+"/temperature/Exterior/pattern", function(error, data) {	
+            if (error) return console.log(error);
+
+            var max = d3.max(data, function(c) { return d3.max(c.values, function(d) { return d.y; }); })+1; 
+            var min = d3.min(data, function(c) { return d3.min(c.values, function(d) { return d.y; }); })-1;
+            bsgraph.forceY([min, max]);
+            
+            d3.select('#chart_baseline svg')
+                .datum(data)
+                .call(bsgraph);
+
+            nv.utils.windowResize(bsgraph.update);
+        });
+        
+        timerBsGraph = setTimeout(loadBsGraph, TIMER_G2H);
+        return bsgraph;
+        
+    }
+    
+    nv.addGraph(loadBsGraph);
+    
+    var x = bsgraph.xScale();
+    var y = bsgraph.yScale();
+    var area = d3.svg.area()
+    .x(function (d) { 
+        var b = new Date(d.x).getTime();
+        return b;
+    })
+    .y0(function (d) { 
+        return y(d.y0); 
+    })
+    .y1(function (d) { 
+        return y(d.y1); 
+    });
+
+    var drawArea = function () {
+        d3.select(".area").remove();
+        d3.select('.nv-linesWrap')
+            .append("path")
+            .datum(data)
+            .attr("class", "forecastArea")
+            .attr("d", area)
+            .style("fill", "#AEC7E8")
+            .style("opacity", .2);
+    }
+    drawArea();
+
+    */
 });
 
 function enablephotos(){
